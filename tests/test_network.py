@@ -58,3 +58,28 @@ def test_serve_configuration_is_repeatable():
         },
         target,
     )
+
+
+def test_direct_tailnet_host_is_exact_and_validated(tmp_path, monkeypatch):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from starlette.middleware.trustedhost import TrustedHostMiddleware
+
+    monkeypatch.setattr(network, "DATA", tmp_path)
+    monkeypatch.delenv("SAYLOOP_ALLOWED_HOSTS", raising=False)
+    path = tmp_path / "network.json"
+    path.write_text('{"tailnet_ip": "100.64.0.1"}')
+    app = FastAPI()
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=network.settings()["allowed_hosts"])
+
+    @app.get("/")
+    def index():
+        return {"ok": True}
+
+    with TestClient(app) as client:
+        assert client.get("/", headers={"host": "100.64.0.1:8765"}).status_code == 200
+        assert client.get("/", headers={"host": "100.64.0.2:8765"}).status_code == 400
+        assert client.get("/", headers={"host": "evil.example"}).status_code == 400
+    path.write_text('{"tailnet_ip": "203.0.113.1"}')
+    with pytest.raises(ValueError):
+        network.settings()

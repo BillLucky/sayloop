@@ -23,6 +23,8 @@ ensure_dirs()
 network = settings()
 if network.get("phone_url"):
     print("Phone: " + network["phone_url"])
+if network.get("tailnet_ip"):
+    print(f"Direct tailnet: http://{network['tailnet_ip']}:{args.port}/#practice")
 if network.get("lan_ip"):
     print(f"Trusted LAN: http://{network['lan_ip']}:{args.port}/#practice")
 url = f"http://127.0.0.1:{args.port}"
@@ -39,7 +41,7 @@ command = [
     "uvicorn",
     "app.main:app",
     "--host",
-    "0.0.0.0" if network.get("lan_ip") else "127.0.0.1",
+    "0.0.0.0" if network.get("lan_ip") or network.get("tailnet_ip") else "127.0.0.1",
     "--port",
     str(args.port),
 ]

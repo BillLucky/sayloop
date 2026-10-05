@@ -43,3 +43,7 @@ Acceptance evidence and limitations are recorded in [VALIDATION.md](VALIDATION.m
 Added private Tailscale Serve setup, opt-in LAN startup, exact-host configuration and Docker environment support. Added explicit per-recording browser storage, reuse on later loads and device-only removal. Audio responses now have versioned URLs, private immutable caching, ETag and range support; metadata remains no-store. Updated English/Chinese entry documentation, operations, architecture and security guidance.
 
 Verified 45 Python, 7 Node and 12 Chrome tests; tested real HTTPS/LAN audio and cached playback with no audio requests. Preserved all existing audio hashes. Private network configuration/evidence remains ignored; the public scanner now detects tailnet hostnames and AGENTS.md requires a privacy review before every commit/push. Global DNS/proxy settings were left unchanged; physical-phone testing remains with the owner.
+
+## 2026-10-05 — Direct Tailscale IP host-header fix
+
+Reproduced HTTP 400 when accessing the service by its numeric tailnet address: HTTPS setup had permitted the DNS hostname only. Added opt-in direct IPv4 setup/rollback, exact-host validation and persistent startup binding. Real direct-IP homepage, health and library now return 200; audio Range returns 206; unknown hosts still return 400. All 46 Python tests pass. Clash TUN, proxy rules and system DNS were left unchanged. Device IPs remain in ignored configuration only.

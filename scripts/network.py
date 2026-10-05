@@ -30,9 +30,13 @@ def main():
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--tailscale", action="store_true")
     group.add_argument(
+        "--tailscale-ip", action="store_true", help="Enable direct tailnet IPv4 access"
+    )
+    group.add_argument(
         "--lan", metavar="PRIVATE_IPV4", help="Opt in to trusted, unencrypted LAN access"
     )
     group.add_argument("--no-lan", action="store_true")
+    group.add_argument("--no-tailscale-ip", action="store_true")
     group.add_argument("--status", action="store_true")
     parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args()
@@ -45,7 +49,19 @@ def main():
         print(json.dumps(config, indent=2))
         subprocess.run(["tailscale", "serve", "status"], check=False)
         return
-    if args.tailscale:
+    if args.tailscale_ip:
+        import ipaddress
+
+        status = json.loads(subprocess.check_output(["tailscale", "status", "--json"]))
+        if status.get("BackendState") != "Running":
+            raise SystemExit("Connect Tailscale first.")
+        addresses = [
+            ip for ip in status["Self"]["TailscaleIPs"] if ipaddress.ip_address(ip).version == 4
+        ]
+        if not addresses:
+            raise SystemExit("No Tailscale IPv4 address found.")
+        config["tailnet_ip"] = addresses[0]
+    elif args.tailscale:
         status = json.loads(subprocess.check_output(["tailscale", "status", "--json"]))
         if status.get("BackendState") != "Running":
             raise SystemExit("Connect Tailscale first.")
@@ -70,6 +86,8 @@ def main():
         ):
             raise SystemExit("Use your computer's RFC1918 LAN IPv4 address.")
         config["lan_ip"] = str(address)
+    elif args.no_tailscale_ip:
+        config.pop("tailnet_ip", None)
     else:
         config.pop("lan_ip", None)
     temporary = path.with_suffix(".tmp")
@@ -80,6 +98,8 @@ def main():
     print("Saved locally. Restart Sayloop when no generation is running.")
     if config.get("phone_url"):
         print("Phone: " + config["phone_url"])
+    if config.get("tailnet_ip"):
+        print(f"Direct tailnet: http://{config['tailnet_ip']}:{args.port}/#practice")
     if config.get("lan_ip"):
         print(f"Trusted LAN only: http://{config['lan_ip']}:{args.port}/#practice")
 

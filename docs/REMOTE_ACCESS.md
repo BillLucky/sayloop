@@ -26,7 +26,7 @@ Inspect with `.venv/bin/python scripts/network.py --status`. To stop the private
 
 Use the computer's private IPv4 address, **not the router/gateway address**. This opts into a listener on all IPv4 interfaces; host validation accepts only loopback and the configured exact addresses. Host validation is not authentication. Everyone who can connect to this port can potentially use the library. LAN HTTP is unencrypted; use it only on a trusted home network, never hotel/public Wi-Fi. Prefer Tailscale HTTPS even at home. No firewall or router rules are changed automatically.
 
-To return to loopback, run `scripts/network.py --no-lan` with the project Python and restart. If DHCP changes the LAN address, rerun `--lan` with the new address. A running process needs a restart to apply changed access settings.
+To disable LAN mode, run `scripts/network.py --no-lan` with the project Python and restart; binding returns to loopback when direct Tailscale IPv4 mode is also disabled. If DHCP changes the LAN address, rerun `--lan` with the new address. A running process needs a restart to apply changed access settings.
 
 ## Save audio before a walk
 
@@ -54,3 +54,9 @@ References: [Tailscale Serve](https://tailscale.com/docs/features/tailscale-serv
 ## Connection troubleshooting
 
 If Serve reports a private route but HTTPS fails, check that Tailscale is connected on both devices and that MagicDNS resolves the device to its Tailscale address. A proxy using fake-IP DNS can intercept the hostname before Tailscale sees it. Configure that proxy's private-domain/DNS bypass yourself; the setup helper never changes global proxy or DNS settings. Do not disable TLS validation. If LAN access fails, check the current computer IP and local firewall without exposing the port on the router.
+
+## Direct Tailscale IPv4 (without private DNS)
+
+If you prefer the device's numeric Tailscale address, run `.venv/bin/python scripts/network.py --tailscale-ip`, then stop/restart the idle server. The helper discovers the current device IPv4, stores it only in ignored local configuration, permits that exact Host header and prints the URL. This avoids hostname resolution and does not change Clash, TUN, proxy or DNS settings. The browser uses HTTP inside the encrypted Tailscale connection; browser-only HTTPS features may differ, but device audio storage uses IndexedDB.
+
+Direct mode opts into listening on all IPv4 interfaces, as LAN mode does; host checks are not authentication, so keep the computer on trusted networks with appropriate firewall rules. Disable with `--no-tailscale-ip` and restart; also disable LAN mode to restore loopback-only binding. HTTPS Serve continues to work independently. Use one address consistently because HTTPS and numeric HTTP addresses have separate browser caches. Docker users must configure host binding/firewall and the exact allowed host separately.

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fix `Invalid host header` for explicitly configured direct Tailscale IPv4 access. Add `--tailscale-ip` / `--no-tailscale-ip` without changing system proxy or DNS settings.
+
 ## 0.3.0 — 2026-10-05
 
 - Private Tailscale Serve setup, exact-host configuration, and optional trusted LAN startup.

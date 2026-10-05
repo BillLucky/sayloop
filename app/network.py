@@ -18,6 +18,11 @@ def settings():
         raise ValueError(
             "Use exact hostnames or IPv4 addresses, without schemes, ports or wildcards"
         )
+    tailnet_ip = value.get("tailnet_ip")
+    if tailnet_ip:
+        if ipaddress.IPv4Address(tailnet_ip) not in ipaddress.ip_network("100.64.0.0/10"):
+            raise ValueError("Tailscale direct access requires a tailnet IPv4 address")
+        hosts.append(tailnet_ip)
     lan = value.get("lan_ip")
     if lan:
         address = ipaddress.IPv4Address(lan)
