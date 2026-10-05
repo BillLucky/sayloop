@@ -103,6 +103,9 @@ npm test && npm run check && npm run format:check
 .venv/bin/python -m pytest -q
 .venv/bin/ruff check app scripts tests
 .venv/bin/ruff format --check app scripts tests
+npx playwright install chromium
+npm run test:browser
+python3 scripts/privacy_check.py --history
 ```
 
 - [Open-source readiness and dependency updates](docs/OPEN_SOURCE.md)

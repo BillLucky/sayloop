@@ -25,5 +25,9 @@ Acceptance evidence and limitations are recorded in [VALIDATION.md](VALIDATION.m
 - Started real Docker build acceptance and added a separate manual Linux CI workflow for synthesis, restart, and volume restore. Personal data is never an input.
 
 - Linux amd64 Docker synthesis, restart, and empty-volume restore passed in run 37293941307; MP3 hashes matched. Slow duplicate local ARM image downloads were stopped without touching the native service.
-- Upgraded Transformers to 5.18.0 after dependency audit findings; all nine languages passed offline in an isolated native overlay. Final Docker validation repeats with upgraded dependencies.
+- Upgraded Transformers to 5.18.0 after dependency audit findings; all nine languages passed offline in an isolated native overlay. Final Docker validation passed with upgraded dependencies and all nine languages.
 - Added English/Chinese README navigation and four reviewed synthetic screenshots. No personal media is published; image exceptions are restricted to those exact documentation assets.
+
+- Final Docker run 37297083298 passed build, download, offline nine-language synthesis, restart, and empty-volume restore. Source run 37297081567 passed 34 Python, seven playback, and six browser tests.
+- Installed the validated dependency update into the native environment during an idle queue and restored the daily service. Isolated native API synthesis passed; personal materials and recordings were retained.
+- Prepared v0.2.0 source packaging and checked bilingual README links, approved screenshots, all reachable history, and private repository visibility. No personal media or prebuilt runtime is published.

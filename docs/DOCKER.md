@@ -2,6 +2,10 @@
 
 Install Docker Engine with Compose v2 on Linux, or Docker Desktop on macOS/Windows. Use at least 4 GB of memory and allow several GB of disk for Python, Torch, dictionaries, and the build cache. Exact resource use depends on the platform. CPU inference is the default. You do not need Python or Node on the host.
 
+## Verified platforms
+
+Linux amd64 is the container acceptance target, exercised on a clean Ubuntu 24.04 runner. Apple Silicon native Python is also verified. Docker Desktop ARM64 and Windows-host integration are not separately certified by those checks; use the native installation on Apple Silicon when you want the tested local path.
+
 ## First run
 
 From the source checkout:

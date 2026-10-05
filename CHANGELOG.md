@@ -3,6 +3,7 @@
 ## 0.2.0 — 2026-10-05
 
 - License current application source under Apache-2.0; add NOTICE, dependency license boundaries, and contributor/community templates. Earlier tags retain their MIT terms.
+- Verify Linux amd64 Docker build, nine-language offline synthesis, restart, and restore into a new data volume.
 - Document Docker first-run setup, empty personal libraries, offline model cache, backup/restore, and source-only distribution.
 - Add desktop/mobile browser regression tests using synthetic text and audio, plus deployment synthesis/persistence smoke checks.
 - Audit staged source and reachable Git history for private artifacts; exclude environment variants and retain only a safe configuration example.
