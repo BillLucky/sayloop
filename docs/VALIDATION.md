@@ -31,6 +31,13 @@ The 0.1.1 shutdown patch was also exercised against a real isolated server: back
 
 ## Boundaries
 
-The Docker Compose configuration parses, but no container build or inference was performed because a Docker daemon was not available. The browser viewport override did not change the connected browser's viewport, so phone-sized visual acceptance is not claimed. Responsive CSS is included; native desktop Chrome is the visually verified target for this release.
+Desktop (1440 × 900) and mobile-emulated (390 × 844) Chrome browser regressions now pass with synthetic text and a range-capable WAV fixture. They exercise real browser media pause/resume, turn-taking, automatic scrolling, sidebar folding, immersive entry/exit, and layout overflow. Screenshots were inspected. This is not physical iOS/Android acceptance.
+
+Docker 0.2.0 build and persistence acceptance is being recorded separately below; do not infer a successful container run from configuration parsing alone.
 
 Model-estimated English timing can have small boundary errors. Non-English practice remains passage-based. Background browser throttling can affect pause timing; keep the practice tab active for precise turn-taking. No claims are made about pronunciation scoring, translation, or subjective voice quality.
+
+
+## 0.2.0 source preparation
+
+33 Python tests, seven Node playback tests, and four desktop/mobile browser cases passed locally. Staged and historical privacy scanning, license inventory, and deployment smoke tools were added. Browser API fixtures do not substitute for real model inference; Docker inference/persistence has its own acceptance workflow.

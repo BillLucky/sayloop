@@ -45,6 +45,16 @@ Setup reuses the Hugging Face cache before downloading weights. First-time setup
 .venv/bin/python scripts/export_library.py
 ```
 
+## Docker
+
+```sh
+docker compose build
+docker compose run --rm sayloop python scripts/download_model.py
+docker compose up -d --wait
+```
+
+Open the same local URL. The library starts empty; import your own material. Weights download separately into a persistent volume. See [Docker setup, offline use, backup and restore](docs/DOCKER.md). No prebuilt image, personal text, or recordings are published.
+
 ## Practice controls
 
 | Action | Control |
@@ -69,6 +79,7 @@ npm test && npm run check && npm run format:check
 .venv/bin/ruff format --check app scripts tests
 ```
 
+- [Open-source readiness and dependency updates](docs/OPEN_SOURCE.md)
 - [Architecture and implementation](docs/ARCHITECTURE.md)
 - [Operation, backup, migration, and packaging](docs/OPERATIONS.md)
 - [User guide / 中文使用说明](docs/USER_GUIDE.zh-CN.md)
@@ -76,8 +87,8 @@ npm test && npm run check && npm run format:check
 - [Verification record](docs/VALIDATION.md)
 - [Contributing](CONTRIBUTING.md), [privacy boundaries](SECURITY.md), [changelog](CHANGELOG.md)
 
-Docker/Compose files are provided for a future Linux installation. The local Python installation is the verified deployment path; see the operations guide for the container verification boundary. The application is single-user and loopback-only by default, with no authentication layer.
+Native and Docker installation instructions are provided. See the validation record for the exact tested platforms. The application is single-user and loopback-only by default, with no authentication layer.
 
 ## Credits and license
 
-Application code: [MIT](LICENSE). Kokoro weights and third-party packages retain their own licenses; see [third-party notices](THIRD_PARTY_NOTICES.md). The learning workflow is inspired by [1000 Hours](https://1000h.org/training-tasks/kick-off.html): prepare meaningful personal text, listen, speak, and repeat.
+Application code: [Apache-2.0](LICENSE). Kokoro weights and third-party packages retain their own licenses; see [third-party notices](THIRD_PARTY_NOTICES.md). The learning workflow is inspired by [1000 Hours](https://1000h.org/training-tasks/kick-off.html): prepare meaningful personal text, listen, speak, and repeat.

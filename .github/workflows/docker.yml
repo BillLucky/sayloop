@@ -1,0 +1,43 @@
+name: Docker acceptance
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  docker:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      COMPOSE_PROJECT_NAME: sayloop-acceptance
+      SAYLOOP_PORT: '8768'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: docker compose build
+      - run: docker compose run --rm sayloop python scripts/download_model.py
+      - run: docker compose up -d --wait
+        env:
+          HF_HUB_OFFLINE: '1'
+      - run: python3 scripts/smoke_deployment.py --receipt data/validation/docker.json
+      - run: docker compose restart
+      - run: python3 scripts/smoke_deployment.py --receipt data/validation/docker.json --verify
+      - name: Restore into a separate empty volume
+        run: |
+          docker compose stop
+          mkdir -p data/validation/backup
+          docker compose cp sayloop:/app/data/. ./data/validation/backup/
+          COMPOSE_PROJECT_NAME=sayloop-restore docker compose up -d --wait
+          COMPOSE_PROJECT_NAME=sayloop-restore docker compose stop
+          COMPOSE_PROJECT_NAME=sayloop-restore docker compose cp ./data/validation/backup/. sayloop:/app/data/
+          COMPOSE_PROJECT_NAME=sayloop-restore docker compose run --rm --user root --cap-add CHOWN sayloop chown -R 10001:10001 /app/data
+          COMPOSE_PROJECT_NAME=sayloop-restore docker compose start
+          python3 scripts/smoke_deployment.py --receipt data/validation/docker.json --verify
+      - name: Diagnostics
+        if: failure()
+        run: docker compose logs --tail 100
+      - name: Stop acceptance services
+        if: always()
+        run: |
+          docker compose stop
+          COMPOSE_PROJECT_NAME=sayloop-restore docker compose stop

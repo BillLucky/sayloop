@@ -1,6 +1,6 @@
 {
   "name": "sayloop",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Local speech generation and personal language practice with Kokoro",
@@ -8,9 +8,12 @@
     "format": "prettier --write web/",
     "format:check": "prettier --check web/",
     "check": "node --check web/app.js && node --check web/practice-player.js",
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs",
+    "test:browser": "playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "prettier": "3.5.3"
-  }
+  },
+  "license": "Apache-2.0"
 }

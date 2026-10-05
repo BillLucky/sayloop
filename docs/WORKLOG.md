@@ -16,3 +16,10 @@ Acceptance evidence and limitations are recorded in [VALIDATION.md](VALIDATION.m
 - Rechecked the private remote, successful initial CI runs, clean source tree, and live native server readiness.
 - Reproduced and fixed a misleading stop-script success message when graceful shutdown times out. Added isolated regression cases without stopping the daily-use server.
 - Added a delivery index covering completed scope, local artifacts, and explicitly unverified deployment targets.
+
+## 2026-10-05 — 0.2.0 source-distribution preparation
+
+- Applied the requested Apache-2.0 application license and documented GPL/LGPL dependency boundaries without publishing bundled runtimes.
+- Added community/PR/issue templates, Docker setup and restore instructions, and complete-history privacy checks.
+- Added four real-browser regression cases with synthetic range-aware audio at desktop/mobile widths; all passed and screenshots were inspected.
+- Started real Docker build acceptance and added a separate manual Linux CI workflow for synthesis, restart, and volume restore. Personal data is never an input.

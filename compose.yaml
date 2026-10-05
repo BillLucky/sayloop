@@ -1,13 +1,21 @@
 services:
   sayloop:
     build: .
+    image: sayloop:local
     ports:
-      - "127.0.0.1:8765:8765"
+      - "127.0.0.1:${SAYLOOP_PORT:-8765}:8765"
     volumes:
       - sayloop-data:/app/data
       - sayloop-models:/models
     environment:
-      KOKORO_THREADS: "4"
+      KOKORO_THREADS: "${KOKORO_THREADS:-4}"
+      HF_HUB_OFFLINE: "${HF_HUB_OFFLINE:-0}"
+    init: true
+    stop_grace_period: 2m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     restart: unless-stopped
 volumes:
   sayloop-data:

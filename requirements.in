@@ -1,7 +1,18 @@
+# Direct dependencies; requirements.lock is the tested complete environment.
+# Regenerate in Python 3.11, then verify native + Docker and all language samples.
+fastapi==0.142.2
+uvicorn[standard]==0.54.0
+python-multipart==0.0.32
 kokoro==0.9.4
-transformers>=4.48,<4.52
-misaki[en,zh,ja]>=0.9.4,<0.10
-fastapi>=0.115,<1
-uvicorn[standard]>=0.34,<1
-soundfile>=0.13,<1
-python-multipart>=0.0.20
+transformers==4.51.3
+misaki[en,ja,zh]==0.9.4
+torch==2.14.1
+soundfile==0.14.0
+numpy==2.4.6
+huggingface-hub==0.36.2
+unidic==1.1.0
+en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
+# Development checks included in the native environment.
+pytest==9.1.1
+httpx==0.28.1
+ruff==0.16.10

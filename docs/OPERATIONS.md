@@ -42,7 +42,7 @@ To move to another machine: install the source and dependencies; copy your priva
 
 `docker compose config --quiet` validates the supplied recipe. `docker compose up --build -d` builds the Python application, installs FFmpeg/dictionaries, and uses named volumes for data and model cache. It publishes **only** `127.0.0.1:8765`; the container itself listens on `0.0.0.0` so port forwarding works. Named container volumes are separate from the native `data/` folder.
 
-The container recipe was configuration-validated, but no image build or container inference was run because the local Docker daemon was unavailable. Native Apple Silicon execution is the acceptance-tested path. A future Linux release must pass a real container build, generation, restart, and volume-restore test before being labeled supported. Reference: [FastAPI container deployment](https://fastapi.tiangolo.com/deployment/docker/).
+See [Docker installation](DOCKER.md) for first-run model setup, offline mode, backup/restore commands, and a repeatable synthesis/restart test. The [validation record](VALIDATION.md) lists the platforms actually exercised. Reference: [FastAPI container deployment](https://fastapi.tiangolo.com/deployment/docker/).
 
 For a personal remote server, keep the listener private and use an SSH tunnel (`ssh -L 8765:127.0.0.1:8765 your-host`) to reach it locally. Public hosting and multi-user service require a separate security design; do not simply widen the bind address or trusted hosts.
 

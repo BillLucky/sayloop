@@ -4,13 +4,16 @@ permissions:
   contents: read
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
@@ -19,4 +22,6 @@ jobs:
       - run: ruff check app scripts tests && ruff format --check app scripts tests
       - run: npm ci --ignore-scripts
       - run: npm run check && npm test && npm run format:check
-      - run: python scripts/privacy_check.py
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+      - run: python scripts/privacy_check.py --history

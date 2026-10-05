@@ -10,3 +10,6 @@
 !web/*.svg
 !scripts/
 !scripts/download_model.py
+!LICENSE
+!NOTICE
+!THIRD_PARTY_NOTICES.md

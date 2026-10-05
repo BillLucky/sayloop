@@ -1,0 +1,24 @@
+name: Bug report
+description: Report a reproducible problem using synthetic input.
+body:
+  - type: markdown
+    attributes:
+      value: Do not include personal text, recordings, credentials, or model files. Report security issues privately.
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps and synthetic input
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Version, OS, browser, and native or Docker installation
+    validations:
+      required: true
