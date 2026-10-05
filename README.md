@@ -1,5 +1,7 @@
 # Sayloop
 
+**English** | [简体中文](README.zh-CN.md)
+
 **Your words, out loud.** A personal speech studio and language practice room that runs on your own computer.
 
 Write something you want to say, turn it into speech, and practice one sentence at a time. Sayloop uses [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M); no paid speech API or account is required. This repository is currently private. The source is organized for a future public release; personal materials and recordings are never included.
@@ -16,6 +18,30 @@ Write something you want to say, turn it into speech, and practice one sentence 
 - Keep your work on disk. Drafts and interface preferences stay in browser storage.
 
 Speech generation does **not** translate text. Select the language already used in your material. Voice quality varies; Kokoro does not expose an emotion-intensity slider. English sentence timing comes from the model's token durations; other languages currently use synthesis passages.
+
+## A look inside
+
+Screenshots use synthetic demonstration text, never personal learning materials.
+
+**Your material library** — keep your own writing ready for practice.
+
+![Sayloop material library](docs/images/library.jpg)
+
+**Speech studio** — choose a voice, adjust pacing, preview, then generate.
+
+![Sayloop speech studio](docs/images/studio.jpg)
+
+**Immersive practice** — follow the current sentence, pause, speak, and continue.
+
+![Sayloop immersive practice](docs/images/practice.jpg)
+
+<details>
+<summary>Mobile-sized practice view</summary>
+
+<img src="docs/images/mobile.jpg" width="320" alt="Sayloop at a mobile browser width" />
+
+Verified in Chrome mobile emulation; physical iOS/Android devices are not yet acceptance-tested.
+</details>
 
 ## Run locally
 

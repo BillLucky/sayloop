@@ -1,11 +1,33 @@
 import { test, expect } from '@playwright/test';
 
 // Synthetic tone and API fixtures exercise browser layout/media without personal data or models.
-const segments = Array.from({ length: 24 }, (_, i) => ({
-  text: `Sentence ${i + 1}. A little practice every day makes unfamiliar words feel natural.`,
-  start: i * 2,
-  end: (i + 1) * 2,
-}));
+const sampleSentences = [
+  'The best kind of progress is the kind you can feel.',
+  'Start with a few words, and make them your own.',
+  'A quiet morning is a good time to listen.',
+  'Read the sentence once, then close your eyes.',
+  'Notice where the voice slows down and takes a breath.',
+  'Try the same rhythm in your own voice.',
+  'You do not have to sound perfect to be understood.',
+  'Small steps make room for lasting habits.',
+  'Choose a story you would enjoy telling a friend.',
+  'Use words that belong to your everyday life.',
+  'Listen for the shape of the sentence.',
+  'Let the difficult words become familiar with time.',
+  'Pause whenever you need a moment to think.',
+  'Say it again with a little more confidence.',
+  'Every repetition gives you something new to notice.',
+  'Some days you will practice for only a few minutes.',
+  'Those minutes still belong to your progress.',
+  'Keep a phrase that makes you want to speak.',
+  'Take it with you into your next conversation.',
+  'Ask a question and listen to the answer.',
+  'Language grows when we use it with curiosity.',
+  'There is always another way to tell the story.',
+  'Tomorrow you can come back and try again.',
+  'For today, a little more is enough.',
+];
+const segments = sampleSentences.map((text, i) => ({ text, start: i * 2, end: (i + 1) * 2 }));
 const job = {
   id: 'synthetic',
   title: 'A little more, every day',
@@ -70,12 +92,18 @@ test.beforeEach(async ({ page }) => {
             name: 'Fenrir',
             language: 'a',
             gender: 'male',
-            note: 'Synthetic test',
+            note: 'Full-length default · compare it with Michael and Puck',
           },
         ],
       },
       '/api/materials': [
-        { id: 'example', title: job.title, text: job.text, words: 300, language: 'a' },
+        {
+          id: 'example',
+          title: job.title,
+          text: job.text,
+          words: job.text.split(/\s+/).length,
+          language: 'a',
+        },
       ],
       '/api/generations': [job],
       '/api/generations/synthetic': job,
@@ -124,7 +152,7 @@ test('responsive layout and immersive controls remain usable', async ({ page }, 
   }
   await page.locator('#enter-focus').click();
   await expect(page.locator('#focus-stage')).toBeVisible();
-  await expect(page.locator('#focus-current')).toContainText('Sentence 1');
+  await expect(page.locator('#focus-current')).toContainText(sampleSentences[0]);
   await expect(page.locator('.focus-play')).toBeInViewport();
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
@@ -133,6 +161,27 @@ test('responsive layout and immersive controls remain usable', async ({ page }, 
     path: `data/validation/${testInfo.project.name}-0.2.0.png`,
     fullPage: true,
   });
+  await page.screenshot({
+    path: `data/validation/${testInfo.project.name}-0.2.0.jpg`,
+    quality: 85,
+  });
   await page.keyboard.press('Escape');
   await expect(page.locator('#focus-stage')).toBeHidden();
+});
+
+test('synthetic library and studio walkthrough', async ({ page }, testInfo) => {
+  if (testInfo.project.name === 'desktop')
+    await page.setViewportSize({ width: 1440, height: 1100 });
+  await page.locator('[data-view="library"]').click();
+  await expect(page.locator('.card-title')).toHaveText(job.title);
+  if (testInfo.project.name === 'desktop')
+    await page.screenshot({ path: 'data/validation/library-0.2.0.jpg', quality: 85 });
+  await page.locator('[data-open="example"]').click();
+  await expect(page.locator('#editor')).toHaveValue(job.text);
+  await expect(page.locator('#voice')).toHaveValue('am_fenrir');
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
+    .toBe(true);
+  if (testInfo.project.name === 'desktop')
+    await page.screenshot({ path: 'data/validation/studio-0.2.0.jpg', quality: 85 });
 });

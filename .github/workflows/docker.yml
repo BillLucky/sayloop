@@ -20,6 +20,8 @@ jobs:
         env:
           HF_HUB_OFFLINE: '1'
       - run: python3 scripts/smoke_deployment.py --receipt data/validation/docker.json
+      - name: Offline synthesis in all nine language options
+        run: docker compose exec -T -e HF_HUB_OFFLINE=1 sayloop python scripts/smoke_languages.py
       - run: docker compose restart
       - run: python3 scripts/smoke_deployment.py --receipt data/validation/docker.json --verify
       - name: Restore into a separate empty volume

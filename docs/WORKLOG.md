@@ -23,3 +23,7 @@ Acceptance evidence and limitations are recorded in [VALIDATION.md](VALIDATION.m
 - Added community/PR/issue templates, Docker setup and restore instructions, and complete-history privacy checks.
 - Added four real-browser regression cases with synthetic range-aware audio at desktop/mobile widths; all passed and screenshots were inspected.
 - Started real Docker build acceptance and added a separate manual Linux CI workflow for synthesis, restart, and volume restore. Personal data is never an input.
+
+- Linux amd64 Docker synthesis, restart, and empty-volume restore passed in run 37293941307; MP3 hashes matched. Slow duplicate local ARM image downloads were stopped without touching the native service.
+- Upgraded Transformers to 5.18.0 after dependency audit findings; all nine languages passed offline in an isolated native overlay. Final Docker validation repeats with upgraded dependencies.
+- Added English/Chinese README navigation and four reviewed synthetic screenshots. No personal media is published; image exceptions are restricted to those exact documentation assets.

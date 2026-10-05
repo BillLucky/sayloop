@@ -40,4 +40,12 @@ Model-estimated English timing can have small boundary errors. Non-English pract
 
 ## 0.2.0 source preparation
 
-33 Python tests, seven Node playback tests, and four desktop/mobile browser cases passed locally. Staged and historical privacy scanning, license inventory, and deployment smoke tools were added. Browser API fixtures do not substitute for real model inference; Docker inference/persistence has its own acceptance workflow.
+34 Python tests, seven Node playback tests, and six desktop/mobile browser cases passed locally. Staged and historical privacy scanning, license inventory, and deployment smoke tools were added. Browser API fixtures do not substitute for real model inference; Docker inference/persistence has its own acceptance workflow.
+
+## Docker and dependency acceptance
+
+The initial Linux amd64 Docker acceptance run [37293941307](https://github.com/BillLucky/sayloop/actions/runs/37293941307) built from a clean runner, downloaded the model, synthesized and downloaded a 5.275-second synthetic recording, restarted the service, and restored data into a separate empty volume. Both persistence checks matched the exact MP3 SHA-256. No image or audio artifact was published.
+
+Transformers 5.18.0 with Hugging Face Hub 1.33.0 was exercised in an isolated native dependency overlay: all nine language/accent samples synthesized successfully with `HF_HUB_OFFLINE=1`. The original daily-use environment was not modified by that experiment. Final Docker revalidation uses these upgraded pins and also runs all nine languages.
+
+The updated Python lock and npm development lock were audited on 2026-10-05 with pip-audit and the official npm advisory endpoint; both reported no known vulnerabilities. This is a point-in-time advisory check, not a guarantee of absence of vulnerabilities.

@@ -10,7 +10,7 @@ RUN pip install --no-cache-dir torch==2.14.1 --index-url https://download.pytorc
 COPY LICENSE NOTICE THIRD_PARTY_NOTICES.md ./
 COPY app/ ./app/
 COPY web/ ./web/
-COPY scripts/download_model.py ./scripts/download_model.py
+COPY scripts/download_model.py scripts/smoke_languages.py ./scripts/
 RUN useradd --create-home --uid 10001 sayloop && mkdir -p /app/data /models \
     && chown -R sayloop:sayloop /app/data /models
 ENV LLH_DATA_DIR=/app/data HF_HOME=/models KOKORO_DEVICE=cpu KOKORO_THREADS=4

@@ -6,6 +6,13 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+# Only these manually reviewed screenshots use synthetic browser-test fixtures.
+REVIEWED_IMAGES = {
+    "docs/images/library.jpg",
+    "docs/images/studio.jpg",
+    "docs/images/practice.jpg",
+    "docs/images/mobile.jpg",
+}
 BLOCKED = {
     ".mp3",
     ".wav",
@@ -36,7 +43,7 @@ def artifact(name):
     return (
         path.parts[0] in {"data", ".venv", "node_modules", ".claude"}
         or (path.name.startswith(".env") and path.name != ".env.example")
-        or path.suffix.lower() in BLOCKED
+        or (path.suffix.lower() in BLOCKED and name not in REVIEWED_IMAGES)
     )
 
 

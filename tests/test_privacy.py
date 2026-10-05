@@ -16,3 +16,8 @@ def test_example_configuration_allowed():
 
 def test_sensitive_text_rejected():
     assert inspect("sample.txt", "ghp_" + "x" * 30)
+
+
+def test_only_reviewed_synthetic_images_allowed():
+    assert inspect("docs/images/practice.jpg", "synthetic") is None
+    assert inspect("docs/images/private.jpg", "synthetic") == "private/generated artifact"
