@@ -1,0 +1,14 @@
+services:
+  sayloop:
+    build: .
+    ports:
+      - "127.0.0.1:8765:8765"
+    volumes:
+      - sayloop-data:/app/data
+      - sayloop-models:/models
+    environment:
+      KOKORO_THREADS: "4"
+    restart: unless-stopped
+volumes:
+  sayloop-data:
+  sayloop-models:

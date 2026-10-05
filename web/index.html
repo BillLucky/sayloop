@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#143c32" />
+    <title>Sayloop — Your words, out loud.</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/app.js" type="module"></script>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <a class="brand" href="#library" aria-label="Sayloop home"
+        ><span class="brand-mark">s</span
+        ><span class="brand-word">Sayloop<small>Your words, out loud.</small></span></a
+      >
+      <div class="workspace-label">YOUR PERSONAL WORKSPACE</div>
+      <nav aria-label="Main navigation">
+        <button
+          class="nav-item active"
+          data-view="library"
+          aria-label="My materials"
+          title="My materials"
+        >
+          <span data-icon="library"></span><span class="nav-text">My materials</span
+          ><span id="nav-count" class="nav-count">0</span>
+        </button>
+        <button
+          class="nav-item"
+          data-view="studio"
+          aria-label="Speech studio"
+          title="Speech studio"
+        >
+          <span data-icon="sliders"></span><span class="nav-text">Speech studio</span>
+        </button>
+        <button
+          class="nav-item"
+          data-view="voices"
+          aria-label="Voice collection"
+          title="Voice collection"
+        >
+          <span data-icon="wave"></span><span class="nav-text">Voice collection</span>
+        </button>
+        <button
+          class="nav-item"
+          data-view="practice"
+          aria-label="Practice room"
+          title="Practice room"
+        >
+          <span data-icon="headphones"></span><span class="nav-text">Practice room</span>
+        </button>
+      </nav>
+      <div class="sidebar-note">
+        <span class="eyebrow">A LITTLE, EVERY DAY</span>
+        <p>Learn to say<br />what you mean.</p>
+        <span>Your ideas. Your voice.<br />A practice that feels like you.</span>
+      </div>
+      <a
+        class="method-link"
+        href="https://1000h.org/training-tasks/kick-off.html"
+        target="_blank"
+        rel="noreferrer"
+        ><span data-icon="book"></span>The 1,000-hour journey<span>↗</span></a
+      >
+      <div class="local-status">
+        <span class="status-dot"></span>
+        <div>Local & personal<small id="engine-status">Connecting to your studio…</small></div>
+      </div>
+      <div class="profile">
+        <span class="avatar">S</span>
+        <div>Your workspace<small>One voice. Many possibilities.</small></div>
+      </div>
+    </aside>
+
+    <div class="main-shell">
+      <header class="topbar">
+        <div>
+          <button
+            id="sidebar-toggle"
+            class="icon-button"
+            aria-label="Collapse sidebar"
+            aria-expanded="true"
+          >
+            <span data-icon="panel"></span>
+          </button>
+          <span class="mobile-brand">Sayloop / </span><span class="muted">Workspace</span
+          ><span class="slash">/</span><span id="breadcrumb">My materials</span>
+        </div>
+        <span class="top-badge"><span class="status-dot"></span>On your device</span>
+      </header>
+      <main id="main-content">
+        <section id="view-library" class="view">
+          <div class="page-heading">
+            <div>
+              <span class="eyebrow">MAKE IT YOUR OWN</span>
+              <h1>Your words, <em>out loud.</em></h1>
+              <p>Turn the things you want to say into the way you practice.</p>
+            </div>
+            <button class="button primary" id="new-material">
+              <span data-icon="plus"></span>New material
+            </button>
+          </div>
+          <div class="hero-card">
+            <div class="hero-copy">
+              <span class="pill light">YOUR DAILY PRACTICE, REIMAGINED</span>
+              <h2>A familiar story.<br />A new way to tell it.</h2>
+              <p>
+                Start with your own writing. Find a voice you enjoy.<br />Listen, repeat, and make
+                every sentence yours.
+              </p>
+              <button id="hero-start" class="button ivory">
+                Open speech studio<span data-icon="arrow"></span>
+              </button>
+            </div>
+            <div class="hero-art" aria-hidden="true">
+              <div class="orbit orbit-one"></div>
+              <div class="orbit orbit-two"></div>
+              <div class="sound-card">
+                <div class="sound-header">
+                  <span class="mini-logo">s</span><span>Made from your words</span
+                  ><span class="sound-dot"></span>
+                </div>
+                <div class="waveform decorative-wave"></div>
+                <div class="sound-footer"><span>READ. LISTEN. REPEAT.</span><span>↻</span></div>
+              </div>
+              <span class="floating-label">Small steps. A stronger voice.</span>
+            </div>
+          </div>
+          <div class="stats-row">
+            <div>
+              <span data-icon="library"></span><strong id="stat-materials">0</strong
+              ><span>personal materials</span>
+            </div>
+            <div>
+              <span data-icon="headphones"></span><strong id="stat-minutes">0</strong
+              ><span>minutes ready to practice</span>
+            </div>
+            <div>
+              <span data-icon="wave"></span><strong>9</strong
+              ><span>American male voices to explore</span>
+            </div>
+          </div>
+          <div class="section-toolbar">
+            <div>
+              <h2>Your material library <span id="library-count" class="count-badge">0</span></h2>
+              <p>Written by you. Ready to become part of your everyday voice.</p>
+            </div>
+            <label class="search"
+              ><span data-icon="search"></span
+              ><input
+                id="search"
+                type="search"
+                placeholder="Find a material…"
+                aria-label="Search materials"
+            /></label>
+          </div>
+          <div class="filter-row">
+            <div class="segmented">
+              <button class="active" data-filter="all">All materials</button
+              ><button data-filter="ready">Audio ready</button
+              ><button data-filter="draft">Text only</button>
+            </div>
+            <button class="text-button" id="import-button">
+              <span data-icon="upload"></span>Import .txt / .md
+            </button>
+          </div>
+          <div id="material-grid" class="material-grid"></div>
+          <div class="library-bottom">
+            <span>Everything here stays on your computer.</span
+            ><a href="/api/export?kind=full" class="text-button"
+              ><span data-icon="download"></span>Download all full recordings</a
+            >
+          </div>
+        </section>
+
+        <section id="view-studio" class="view" hidden>
+          <div class="page-heading">
+            <div>
+              <span class="eyebrow">FROM TEXT TO SOMETHING YOU CAN HEAR</span>
+              <h1>Make it <em>sound like you.</em></h1>
+              <p>Try a short preview. Find your rhythm. Then bring the whole story to life.</p>
+            </div>
+          </div>
+          <div class="studio-layout">
+            <div class="editor-panel panel">
+              <div class="panel-bar">
+                <span class="eyebrow">YOUR MATERIAL</span
+                ><button id="save-material" class="text-button">
+                  <span data-icon="save"></span>Save to library
+                </button>
+              </div>
+              <input
+                id="material-title"
+                class="title-input"
+                placeholder="Give your material a title"
+                maxlength="160"
+                aria-label="Material title"
+              /><textarea
+                id="editor"
+                placeholder="What would you like to say?\n\nPaste your article, a personal story, or a few sentences you want to practice…"
+                aria-label="Text to turn into speech"
+                maxlength="50000"
+              ></textarea>
+              <div class="editor-footer">
+                <span id="editor-count">0 words · 0 characters</span
+                ><button id="studio-import" class="text-button">
+                  <span data-icon="upload"></span>Import text
+                </button>
+              </div>
+              <p class="editor-hint">
+                Choose the language your text is already written in. Speech generation does not
+                translate it.
+              </p>
+            </div>
+            <div class="settings-panel panel">
+              <div class="panel-bar">
+                <span class="eyebrow">FIND YOUR SOUND</span><span data-icon="sliders"></span>
+              </div>
+              <label class="field-label" for="language">Language & accent</label
+              ><select id="language"></select
+              ><label class="field-label" for="voice">Voice</label
+              ><select id="voice"></select>
+              <p id="voice-note" class="field-help"></p>
+              <button id="browse-voices" class="text-button">
+                Explore the voice collection <span>↗</span>
+              </button>
+              <div class="divider"></div>
+              <div class="range-label">
+                <label for="speed">Speaking pace</label><output id="speed-value">0.95×</output>
+              </div>
+              <input id="speed" type="range" min="0.5" max="1.5" step="0.05" value="0.95" />
+              <div class="range-ends"><span>Take it slow</span><span>Keep it moving</span></div>
+              <div class="range-label">
+                <label for="pause">Pause between passages</label
+                ><output id="pause-value">0.3s</output>
+              </div>
+              <input id="pause" type="range" min="0" max="2" step="0.1" value="0.3" />
+              <div class="format-note">
+                <span data-icon="music"></span>
+                <div>
+                  Ready for your everyday practice<small
+                    >MP3 + original WAV · generated locally</small
+                  >
+                </div>
+              </div>
+              <button id="preview" class="button secondary full">
+                <span data-icon="play"></span>Preview first 25 seconds</button
+              ><button id="generate" class="button primary full">
+                <span data-icon="spark"></span>Generate full audio
+              </button>
+              <p class="privacy-note">Your text is processed on this computer.</p>
+            </div>
+          </div>
+          <div class="section-toolbar">
+            <div>
+              <h2>Your recordings</h2>
+              <p>Progress, previews, and full-length audio — all in one place.</p>
+            </div>
+          </div>
+          <div id="job-list" class="job-list"></div>
+        </section>
+
+        <section id="view-voices" class="view" hidden>
+          <div class="page-heading">
+            <div>
+              <span class="eyebrow">A VOICE WORTH COMING BACK TO</span>
+              <h1>Find your <em>listening companion.</em></h1>
+              <p>Compare the same passage across all nine American male voices.</p>
+            </div>
+            <a class="button secondary" href="/api/export?kind=preview"
+              ><span data-icon="download"></span>Download previews</a
+            >
+          </div>
+          <div class="voice-intro">
+            <span data-icon="headphones"></span>
+            <div>
+              <strong>Same words. Different character.</strong>
+              <p>
+                These previews use the opening of your first material. Fenrir is the starting choice
+                for full recordings; your ears get the final say.
+              </p>
+            </div>
+            <span class="pill">20–30 SECOND PREVIEWS</span>
+          </div>
+          <div id="voice-grid" class="voice-grid"></div>
+          <div class="other-voices panel">
+            <h3>Another language, another possibility.</h3>
+            <p>
+              Explore all 54 voices across 9 language and accent options in the speech studio.
+              Quality varies by voice and language.
+            </p>
+            <button id="all-voices" class="text-button">
+              Open language settings <span>↗</span>
+            </button>
+          </div>
+        </section>
+
+        <section id="view-practice" class="view" hidden>
+          <div class="page-heading">
+            <div>
+              <span class="eyebrow">LISTEN. SAY IT. MAKE IT YOURS.</span>
+              <h1>A little more <em>fluent, every day.</em></h1>
+              <p>Follow a passage, loop it, and speak along at your own pace.</p>
+            </div>
+            <span class="practice-time"
+              ><span data-icon="clock"></span
+              ><span id="practice-time">0 min listened today</span></span
+            >
+          </div>
+          <div class="practice-toolbar panel">
+            <label for="practice-recording">Your recording</label
+            ><select id="practice-recording">
+              <option value="">Select a full recording</option></select
+            ><button id="hide-text" class="button secondary">Hide text</button>
+          </div>
+          <div class="practice-guide">
+            <span>01 &nbsp; Listen closely</span><span>02 &nbsp; Speak along</span
+            ><span>03 &nbsp; Repeat from memory</span>
+          </div>
+          <div class="practice-controls panel">
+            <div class="mode-buttons" role="group" aria-label="Practice mode">
+              <button data-mode="continuous" aria-pressed="true">Continuous</button>
+              <button data-mode="shadow" aria-pressed="false">Listen & speak</button>
+              <button data-mode="loop" aria-pressed="false">Loop sentence</button>
+            </div>
+            <div class="practice-options">
+              <label><input id="auto-follow" type="checkbox" checked />Auto-follow</label
+              ><button id="enter-focus" class="text-button" data-action="focus">
+                <span data-icon="expand"></span>Immersive
+              </button>
+            </div>
+          </div>
+          <div class="sentence-transport">
+            <div>
+              <button
+                class="icon-button"
+                data-action="previous"
+                aria-label="Previous sentence"
+                title="Previous sentence (←)"
+              >
+                <span data-icon="previous"></span></button
+              ><button
+                class="icon-button"
+                data-action="replay"
+                aria-label="Replay sentence"
+                title="Replay sentence (R)"
+              >
+                <span data-icon="repeat"></span></button
+              ><button
+                class="icon-button"
+                data-action="next"
+                aria-label="Next sentence"
+                title="Next sentence (→)"
+              >
+                <span data-icon="next"></span>
+              </button>
+            </div>
+            <span id="sentence-status" role="status">Select a recording to begin.</span>
+            <span class="keyboard-hint"><kbd>Space</kbd> pause / continue <kbd>R</kbd> replay</span>
+          </div>
+          <div id="focus-stage" class="focus-stage" hidden>
+            <div class="focus-top">
+              <a href="#library" class="focus-brand">sayloop<span> / practice</span></a
+              ><button class="focus-exit" data-action="escape">
+                <span data-icon="minimize"></span>Exit immersive <kbd>Esc</kbd>
+              </button>
+            </div>
+            <div class="focus-heading">
+              <span id="focus-title">Your listening room</span
+              ><span id="focus-position">00 / 00</span>
+            </div>
+            <div class="focus-copy">
+              <p id="focus-previous" aria-hidden="true"></p>
+              <span id="focus-cue" class="focus-cue">LISTEN. SPEAK. REPEAT.</span>
+              <p id="focus-current">Make room for your voice.</p>
+              <p id="focus-next" aria-hidden="true"></p>
+            </div>
+            <div class="focus-bottom">
+              <span id="focus-instruction">Choose a recording to begin.</span>
+              <div class="focus-transport">
+                <button
+                  data-action="previous"
+                  aria-label="Previous sentence"
+                  title="Previous sentence (←)"
+                >
+                  <span data-icon="previous"></span></button
+                ><button
+                  data-action="replay"
+                  aria-label="Replay sentence"
+                  title="Replay sentence (R)"
+                >
+                  <span data-icon="repeat"></span></button
+                ><button data-action="toggle" class="focus-play" aria-label="Play or pause">
+                  <span data-icon="play"></span></button
+                ><button data-action="next" aria-label="Next sentence" title="Next sentence (→)">
+                  <span data-icon="next"></span>
+                </button>
+              </div>
+              <div class="focus-modes" role="group" aria-label="Immersive practice mode">
+                <button data-mode="continuous" aria-pressed="true">Continuous</button
+                ><button data-mode="shadow" aria-pressed="false">Listen & speak</button
+                ><button data-mode="loop" aria-pressed="false">Loop sentence</button>
+              </div>
+            </div>
+          </div>
+          <div id="transcript" class="transcript panel">
+            <div class="empty-state">
+              <span data-icon="book"></span>
+              <h3>Your practice starts with your words.</h3>
+              <p>Choose a completed full recording above.</p>
+            </div>
+          </div>
+        </section>
+      </main>
+      <footer class="page-footer">
+        <span>Sayloop</span><span>Built around the things you want to say.</span
+        ><span>LOCAL FIRST · KOKORO</span>
+      </footer>
+    </div>
+
+    <section class="player" aria-label="Audio player" hidden>
+      <div class="player-art"><span data-icon="wave"></span></div>
+      <div class="player-meta">
+        <strong id="player-title">Choose a recording</strong><small id="player-subtitle"></small>
+      </div>
+      <button id="play-toggle" class="play-toggle" aria-label="Play">
+        <span data-icon="play"></span></button
+      ><span id="current-time" class="time">0:00</span
+      ><input
+        id="seek"
+        type="range"
+        min="0"
+        max="100"
+        step="0.01"
+        value="0"
+        aria-label="Seek audio"
+      /><span id="duration" class="time">0:00</span
+      ><select id="playback-rate" aria-label="Playback speed">
+        <option value="0.75">0.75×</option>
+        <option value="1" selected>1×</option>
+        <option value="1.25">1.25×</option>
+        <option value="1.5">1.5×</option></select
+      ><button id="repeat" class="icon-button" aria-label="Repeat recording" aria-pressed="false">
+        <span data-icon="repeat"></span></button
+      ><a id="player-download" class="icon-button" aria-label="Download MP3"
+        ><span data-icon="download"></span></a
+      ><audio id="audio" preload="metadata"></audio>
+    </section>
+    <input id="file-input" type="file" accept=".txt,.md,text/plain,text/markdown" hidden />
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  </body>
+</html>

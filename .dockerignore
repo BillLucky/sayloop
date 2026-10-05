@@ -1,0 +1,12 @@
+*
+!Dockerfile
+!requirements.lock
+!app/
+!app/*.py
+!web/
+!web/*.html
+!web/*.css
+!web/*.js
+!web/*.svg
+!scripts/
+!scripts/download_model.py

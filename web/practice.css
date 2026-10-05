@@ -1,0 +1,480 @@
+.brand-word {
+  font-size: 25px;
+  font-weight: 650;
+  letter-spacing: -1px;
+}
+.brand-word small {
+  display: block;
+  font-size: 8px;
+  font-weight: 400;
+  letter-spacing: 0.3px;
+  color: #899580;
+  margin-top: 5px;
+}
+.brand-mark {
+  letter-spacing: -2px;
+  padding-right: 2px;
+  font-style: italic;
+}
+.topbar > div {
+  display: flex;
+  align-items: center;
+}
+#sidebar-toggle {
+  margin-right: 17px;
+}
+.sidebar-collapsed {
+  --sidebar: 80px;
+}
+.sidebar-collapsed .sidebar {
+  padding: 30px 13px 20px;
+}
+.sidebar-collapsed .brand {
+  margin: 0 auto 42px;
+}
+.sidebar-collapsed .brand-word,
+.sidebar-collapsed .workspace-label,
+.sidebar-collapsed .nav-text,
+.sidebar-collapsed .nav-count,
+.sidebar-collapsed .sidebar-note,
+.sidebar-collapsed .method-link,
+.sidebar-collapsed .local-status,
+.sidebar-collapsed .profile {
+  display: none;
+}
+.sidebar-collapsed .nav-item {
+  justify-content: center;
+  padding: 15px 10px;
+}
+.practice-controls {
+  position: sticky;
+  top: 12px;
+  z-index: 4;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  background: #fffffff5;
+  backdrop-filter: blur(12px);
+}
+.mode-buttons {
+  display: flex;
+  gap: 4px;
+  border-radius: 6px;
+  background: #f3f5ee;
+  padding: 4px;
+}
+.mode-buttons button {
+  background: transparent;
+  color: #89967a;
+  font-size: 10px;
+  padding: 8px 13px;
+  border-radius: 4px;
+}
+.mode-buttons button[aria-pressed='true'] {
+  background: #fff;
+  color: #355c36;
+  box-shadow: 0 2px 6px #233a3010;
+}
+.practice-options {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.practice-options label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-size: 10px;
+  color: #7b8a6c;
+}
+.practice-options input {
+  accent-color: var(--green);
+}
+.sentence-transport {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  padding: 18px 3px;
+}
+.sentence-transport > div {
+  display: flex;
+  gap: 3px;
+}
+#sentence-status {
+  font-size: 11px;
+  color: #6e845b;
+}
+.keyboard-hint {
+  font-size: 9px;
+  color: #9aa28f;
+}
+kbd {
+  font: 9px/1.5 inherit;
+  border: 1px solid #dce3d3;
+  border-radius: 4px;
+  padding: 2px 5px;
+  margin: 0 3px;
+}
+.passage {
+  transition:
+    background 0.25s,
+    color 0.25s;
+  scroll-margin: 140px;
+}
+.passage.active {
+  background: #eaf1df;
+  color: #24482e;
+}
+.passage.active .passage-text {
+  font-weight: 550;
+}
+.passage-text {
+  font-size: 20px;
+  line-height: 1.85;
+}
+.focus-stage {
+  min-height: calc(100dvh - 81px);
+  display: flex;
+  flex-direction: column;
+  padding: 25px clamp(24px, 7vw, 110px) 24px;
+  color: #f0f1e7;
+  position: relative;
+  isolation: isolate;
+}
+.focus-stage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 55% 42%, #284a39 0%, #132e26 50%, #0f241f 90%);
+  z-index: -1;
+}
+.focus-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+.focus-brand {
+  font:
+    25px Georgia,
+    serif;
+  letter-spacing: -0.8px;
+  color: #e0e7ce;
+}
+.focus-brand span {
+  font:
+    10px -apple-system,
+    sans-serif;
+  letter-spacing: 1px;
+  margin-left: 13px;
+  color: #7c9880;
+}
+.focus-exit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #a4b39d;
+  background: #ffffff08;
+  border: 1px solid #8eaa772b;
+  border-radius: 8px;
+  font-size: 10px;
+  padding: 9px 12px;
+}
+.focus-exit kbd {
+  border-color: #72856745;
+  font-size: 8px;
+}
+.focus-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 25px;
+  margin: 34px 0 18px;
+  font-size: 10px;
+  color: #94a788;
+  letter-spacing: 1px;
+}
+#focus-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#focus-position {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.focus-copy {
+  width: 100%;
+  max-width: 1150px;
+  margin: auto;
+  padding: 15px 0;
+}
+#focus-previous,
+#focus-next {
+  font:
+    20px/1.7 Georgia,
+    serif;
+  color: #71836c;
+  opacity: 0.45;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 30px;
+  max-width: 90%;
+}
+#focus-previous {
+  margin-bottom: 27px;
+}
+#focus-next {
+  margin-top: 27px;
+}
+.focus-cue {
+  display: block;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 2.5px;
+  color: #a1bb7b;
+  margin-bottom: 17px;
+}
+#focus-current {
+  font:
+    clamp(28px, 4vw, 60px) / 1.36 Georgia,
+    serif;
+  letter-spacing: -0.7px;
+  color: #f3f3e5;
+  margin: 0;
+  text-wrap: pretty;
+  max-height: 45dvh;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #638263 transparent;
+}
+.focus-stage.your-turn #focus-current {
+  color: #d9ecb3;
+}
+.focus-stage.your-turn .focus-cue {
+  color: #d9ecb3;
+}
+.focus-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  margin-top: 25px;
+}
+#focus-instruction {
+  color: #9eaf91;
+  font-size: 11px;
+  text-align: center;
+}
+.focus-transport {
+  display: flex;
+  gap: 25px;
+  align-items: center;
+}
+.focus-transport button {
+  display: grid;
+  place-items: center;
+  width: 37px;
+  height: 37px;
+  border-radius: 50%;
+  background: none;
+  color: #b9c5a9;
+}
+.focus-transport button:hover {
+  background: #c8dbad12;
+}
+.focus-transport .focus-play {
+  width: 60px;
+  height: 60px;
+  color: #28432c;
+  background: #d8e9b2;
+  box-shadow: 0 0 30px #acc57810;
+}
+.focus-transport .focus-play:hover {
+  background: #e4f1c6;
+  transform: scale(1.035);
+}
+.focus-modes {
+  display: flex;
+  gap: 4px;
+  background: #0a201b40;
+  border: 1px solid #94af7522;
+  padding: 4px;
+  border-radius: 30px;
+}
+.focus-modes button {
+  background: transparent;
+  color: #839776;
+  border-radius: 20px;
+  padding: 7px 14px;
+  font-size: 9px;
+}
+.focus-modes button[aria-pressed='true'] {
+  background: #65804c30;
+  color: #d1dfb9;
+}
+.is-immersive {
+  --sidebar: 0px;
+  background: #0f241f;
+}
+.is-immersive .sidebar,
+.is-immersive .topbar,
+.is-immersive .page-footer,
+.is-immersive #view-practice > :not(#focus-stage) {
+  display: none;
+}
+.is-immersive main {
+  padding: 0 0 81px;
+  max-width: none;
+}
+.is-immersive .player {
+  left: 0;
+  background: #0c231fee;
+  border-color: #69825333;
+  color: #c8d3b8;
+  box-shadow: none;
+}
+.is-immersive .player .time,
+.is-immersive .player small,
+.is-immersive .player select {
+  color: #a4b18f;
+}
+.is-immersive .player-art {
+  background: #ffffff07;
+  color: #a2b581;
+}
+.is-immersive .player .play-toggle {
+  background: #638348;
+}
+.is-immersive #seek {
+  accent-color: #c4d9a2;
+}
+.is-immersive .player .icon-button[aria-pressed='true'] {
+  background: #8aa96040;
+  color: #d9e6bf;
+}
+.is-immersive .toast {
+  left: 50%;
+}
+.focus-stage.text-hidden #focus-current,
+.focus-stage.text-hidden #focus-previous,
+.focus-stage.text-hidden #focus-next {
+  filter: blur(12px);
+}
+@media (max-width: 950px) {
+  .practice-controls {
+    flex-wrap: wrap;
+  }
+  .practice-options {
+    margin-left: auto;
+  }
+  .keyboard-hint {
+    display: none;
+  }
+}
+@media (max-width: 700px) {
+  .sidebar-collapsed {
+    --sidebar: 0px;
+  }
+  .sidebar-collapsed .sidebar {
+    display: none;
+  }
+  #sidebar-toggle {
+    margin-right: 10px;
+    width: 24px;
+  }
+  .practice-controls {
+    top: 73px;
+    padding: 10px;
+    gap: 10px;
+  }
+  .sidebar-collapsed .practice-controls {
+    top: 8px;
+  }
+  .mode-buttons {
+    width: 100%;
+  }
+  .mode-buttons button {
+    flex: 1;
+    padding: 8px;
+    font-size: 9px;
+  }
+  .practice-options {
+    width: 100%;
+    justify-content: space-between;
+  }
+  #sentence-status {
+    font-size: 9px;
+    max-width: 210px;
+  }
+  .passage-text {
+    font-size: 18px;
+  }
+  .focus-stage {
+    min-height: calc(100dvh - 106px);
+    padding: 18px 23px;
+  }
+  .focus-brand {
+    font-size: 23px;
+  }
+  .focus-brand span,
+  .focus-exit kbd {
+    display: none;
+  }
+  .focus-exit {
+    font-size: 8px;
+    padding: 7px 9px;
+  }
+  .focus-heading {
+    margin-top: 22px;
+    font-size: 8px;
+  }
+  #focus-previous,
+  #focus-next {
+    font-size: 14px;
+    -webkit-line-clamp: 1;
+  }
+  #focus-previous {
+    margin-bottom: 20px;
+  }
+  #focus-next {
+    margin-top: 20px;
+  }
+  #focus-current {
+    font-size: clamp(26px, 7vw, 36px);
+    line-height: 1.42;
+    max-height: 33dvh;
+  }
+  .focus-cue {
+    font-size: 7px;
+    letter-spacing: 1.7px;
+  }
+  .focus-bottom {
+    gap: 12px;
+    margin-top: 18px;
+  }
+  #focus-instruction {
+    font-size: 9px;
+  }
+  .focus-transport {
+    gap: 20px;
+  }
+  .focus-transport .focus-play {
+    width: 48px;
+    height: 48px;
+  }
+  .focus-modes button {
+    font-size: 8px;
+    padding: 6px 12px;
+  }
+  .is-immersive main {
+    padding-bottom: 106px;
+  }
+}
