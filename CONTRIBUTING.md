@@ -28,7 +28,7 @@ For playback changes, reproduce the issue in a real browser. Cover focused sente
 
 Use focused commits such as `fix: preserve playback position on Space` or `feat: add sentence practice mode`. Describe the user-visible trigger, resulting behavior, and evidence of verification. Link relevant issues and include screenshots for UI changes. Mark tests that were not run and explain why.
 
-Keep `README.md`, the user guide, architecture, operations notes, and changelog consistent with the final implementation. Never commit `data/`, model weights, credentials, logs, home-directory paths, or personal screenshots. Keep the repository private until the owner explicitly approves a public release.
+Keep `README.md`, the user guide, architecture, operations notes, and changelog consistent with the final implementation. Never commit `data/`, model weights, credentials, logs, home-directory paths, or personal screenshots. Public contributions must contain source and reviewed synthetic examples only.
 
 ## License and contributions
 

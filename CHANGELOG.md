@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Publish the source repository after owner-authorized history and artifact review. Personal learning materials remain local.
+- Credit Li Xiaolai, 1000 Hours, and the everyone-can-use-english / Enjoy community in both READMEs and a dedicated acknowledgement page.
+
+经所有者授权并完成隐私复核，公开源码，补充学习方法来源与致谢；不公开个人语料或录音。
+
 ## 0.2.0 — 2026-10-05
 
 - License current application source under Apache-2.0; add NOTICE, dependency license boundaries, and contributor/community templates. Earlier tags retain their MIT terms.

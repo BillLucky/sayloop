@@ -4,7 +4,7 @@
 
 **Your words, out loud.** A personal speech studio and language practice room that runs on your own computer.
 
-Write something you want to say, turn it into speech, and practice one sentence at a time. Sayloop uses [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M); no paid speech API or account is required. This repository is currently private. The source is organized for a future public release; personal materials and recordings are never included.
+Write something you want to say, turn it into speech, and practice one sentence at a time. Sayloop uses [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M); no paid speech API or account is required. Sayloop is open source; personal materials and recordings are never included.
 
 ## What you can do
 
@@ -48,7 +48,7 @@ Verified in Chrome mobile emulation; physical iOS/Android devices are not yet ac
 Tested on Apple Silicon with Python 3.11. Install [uv](https://docs.astral.sh/uv/) and FFmpeg first (`brew install ffmpeg` on macOS).
 
 ```sh
-git clone git@github.com:BillLucky/sayloop.git
+git clone https://github.com/BillLucky/sayloop.git
 cd sayloop
 ./scripts/setup.sh
 .venv/bin/python scripts/serve.py
@@ -120,4 +120,4 @@ Native and Docker installation instructions are provided. See the validation rec
 
 ## Credits and license
 
-Application code: [Apache-2.0](LICENSE). Kokoro weights and third-party packages retain their own licenses; see [third-party notices](THIRD_PARTY_NOTICES.md). The learning workflow is inspired by [1000 Hours](https://1000h.org/training-tasks/kick-off.html): prepare meaningful personal text, listen, speak, and repeat.
+Application code: [Apache-2.0](LICENSE). Kokoro weights and third-party packages retain their own licenses; see [third-party notices](THIRD_PARTY_NOTICES.md). The practice workflow is inspired by [Li Xiaolai](https://github.com/xiaolai)'s [1000 Hours](https://1000h.org/why.html), especially its [kick-off task](https://1000h.org/training-tasks/kick-off.html): prepare meaningful personal text, listen, speak, and repeat. Thank you to the author and the [everyone-can-use-english / Enjoy community](https://github.com/ZuodaoTech/everyone-can-use-english) for sharing their work. Sayloop is an independent implementation, with no implied affiliation or endorsement. See [acknowledgements](docs/ACKNOWLEDGEMENTS.md).

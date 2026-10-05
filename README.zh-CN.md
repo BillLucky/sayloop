@@ -4,7 +4,7 @@
 
 **把你想说的话，变成可以反复练习的声音。** Sayloop 是运行在自己电脑上的语音工作台与语言练习室。
 
-写下自己的文章，使用 [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) 生成语音，再逐句听、说、重播。无需付费语音 API 或账号。仓库目前仍为私有，代码按未来开源的方式整理；不包含作者的个人学习材料、录音或模型权重。
+写下自己的文章，使用 [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) 生成语音，再逐句听、说、重播。无需付费语音 API 或账号。项目源码已公开；不包含作者的个人学习材料、录音或模型权重。
 
 ## 可以做什么
 
@@ -48,13 +48,13 @@
 原生方式已在 Apple Silicon、Python 3.11 上测试。先安装 [uv](https://docs.astral.sh/uv/) 和 FFmpeg；macOS 可用 `brew install ffmpeg`。
 
 ```sh
-git clone git@github.com:BillLucky/sayloop.git
+git clone https://github.com/BillLucky/sayloop.git
 cd sayloop
 ./scripts/setup.sh
 .venv/bin/python scripts/serve.py
 ```
 
-打开 **http://127.0.0.1:8765**。macOS 也可以双击 `start.command`，后台启动并打开网页。Node 仅用于开发检查，不是运行网页的必要条件。仓库私有期间，克隆需要相应访问权限。
+打开 **http://127.0.0.1:8765**。macOS 也可以双击 `start.command`，后台启动并打开网页。Node 仅用于开发检查，不是运行网页的必要条件。无需 GitHub 账号即可通过 HTTPS 克隆公开源码。
 
 安装脚本优先复用 Hugging Face 模型缓存，并准备英文语言模型与日文字典。日文字典首次下载约 526 MB。完整初始化后可离线生成，设置 `HF_HUB_OFFLINE=1` 可禁止 Hugging Face 下载。
 
@@ -118,4 +118,4 @@ python3 scripts/privacy_check.py --history
 
 当前应用源码采用 [Apache-2.0](LICENSE)。第三方依赖和模型保留各自协议，包含 GPL/LGPL 等组件，详见 [第三方说明](THIRD_PARTY_NOTICES.md)。应用协议不替代模型、字典或用户文本的权利要求。
 
-练习流程受到 [1000 Hours](https://1000h.org/training-tasks/kick-off.html) 启发：准备对自己有意义的内容，听、说、重复。仓库保持私有，未来公开需另行确认，个人语料与音频不随源码发布。
+练习流程受到[李笑来](https://github.com/xiaolai)的 [《一千小时》](https://1000h.org/why.html)及其[启动任务](https://1000h.org/training-tasks/kick-off.html)启发：准备对自己有意义的内容，听、说、重复。感谢作者与 [人人都能用英语 / Enjoy 社区](https://github.com/ZuodaoTech/everyone-can-use-english)公开分享方法和工程。Sayloop 是独立实现，不代表原作者或社区的官方项目或背书，详见[致谢](docs/ACKNOWLEDGEMENTS.md)。个人语料与音频不随源码发布。

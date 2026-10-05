@@ -46,12 +46,12 @@ See [Docker installation](DOCKER.md) for first-run model setup, offline mode, ba
 
 For a personal remote server, keep the listener private and use an SSH tunnel (`ssh -L 8765:127.0.0.1:8765 your-host`) to reach it locally. Public hosting and multi-user service require a separate security design; do not simply widen the bind address or trusted hosts.
 
-## Private release, then potential open source
+## Source releases
 
 1. Run Python/JavaScript tests, format checks, real generation, and browser acceptance.
 2. Stage source and run `python3 scripts/privacy_check.py`; inspect `git diff --cached`.
-3. Commit with a GitHub noreply email. Create an annotated version tag and push to the **private** repository.
+3. Commit with a GitHub noreply email. Create an annotated version tag and push to the source repository.
 4. Run `python3 scripts/package_release.py`. It archives committed source only, with a SHA-256 companion file, under `data/releases/`.
-5. Before any future public release, separately approve visibility, audit the entire Git history and release assets, replace private screenshots with synthetic examples, review licenses, and validate the target deployment platform.
+5. Before each release, audit Git history and release assets, use synthetic screenshots only, review licenses, and validate the target deployment platform. Public visibility was explicitly authorized by the owner on 2026-10-05.
 
 Audio packs are personal exports, never GitHub release assets. No automated deployment or public publishing occurs in this repository.

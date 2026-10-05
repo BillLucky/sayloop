@@ -31,3 +31,8 @@ Acceptance evidence and limitations are recorded in [VALIDATION.md](VALIDATION.m
 - Final Docker run 37297083298 passed build, download, offline nine-language synthesis, restart, and empty-volume restore. Source run 37297081567 passed 34 Python, seven playback, and six browser tests.
 - Installed the validated dependency update into the native environment during an idle queue and restored the daily service. Isolated native API synthesis passed; personal materials and recordings were retained.
 - Prepared v0.2.0 source packaging and checked bilingual README links, approved screenshots, all reachable history, and private repository visibility. No personal media or prebuilt runtime is published.
+
+## 2026-10-05 — Public source release and upstream acknowledgement
+
+- The owner explicitly authorized changing repository visibility after privacy review. Re-fetched all branches and tags and reviewed tracked history, noreply author metadata, release attachments, and Actions artifacts. No personal material/audio or credentials were found; the four documentation images contain synthetic examples.
+- Updated current documentation for public source distribution and credited Li Xiaolai's 1000 Hours and the everyone-can-use-english / Enjoy community. Historical entries describe the visibility at the time.

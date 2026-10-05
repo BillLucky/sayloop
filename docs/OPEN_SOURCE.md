@@ -1,6 +1,6 @@
 # Open-source readiness
 
-The repository remains private. This checklist prepares source distribution; it does not authorize changing visibility or publishing personal artifacts.
+The owner authorized public source distribution on 2026-10-05 after a fresh history and artifact review. The repository is public; personal artifacts remain local and excluded.
 
 ## Included foundations
 
@@ -11,9 +11,9 @@ The repository remains private. This checklist prepares source distribution; it 
 - Bug/PR templates and monthly Actions/npm dependency update proposals.
 - Git ignore rules, a Docker context allowlist, source-only release archives, and staged/history privacy checks.
 
-## Before a public source release
+## Release checklist
 
-1. Obtain the owner's explicit approval to change repository visibility.
+1. Confirm the release scope is source and reviewed documentation assets only.
 2. Run `python3 scripts/privacy_check.py --history` with all branches/tags fetched. Review the history and GitHub attachments manually too: pattern matching is not a comprehensive content or secret audit.
 3. Confirm release assets contain only committed source and checksums. Never attach `data/`, audio exports, model weights, screenshots of personal content, or private logs.
 4. Run acceptance checks on the claimed deployment platforms and update the validation record. Do not extrapolate mobile emulation to physical iOS/Android devices.
