@@ -1,6 +1,6 @@
 # Validation record
 
-Date: 2026-10-05. Release: 0.1.0. Environment: native Apple Silicon, Python 3.11, CPU inference, FFmpeg, Chrome. Private recordings and screenshots remain in ignored local data directories.
+Date: 2026-10-05. Release: 0.1.1 (0.1.0 browser/audio acceptance retained; operational patch regression verified). Environment: native Apple Silicon, Python 3.11, CPU inference, FFmpeg, Chrome. Private recordings and screenshots remain in ignored local data directories.
 
 ## Audio and backend
 
@@ -25,7 +25,9 @@ Date: 2026-10-05. Release: 0.1.0. Environment: native Apple Silicon, Python 3.11
 
 ## Automated check results
 
-24 Python tests and 7 JavaScript playback tests passed. Ruff lint/format checks, JavaScript syntax checks, Prettier checks, Compose configuration validation, tracked-source privacy checks, and the 15-file audio ZIP integrity check passed. Browser evidence and per-recording decode results are saved locally.
+27 Python tests and 7 JavaScript playback tests passed. Ruff lint/format checks, JavaScript syntax checks, Prettier checks, Compose configuration validation, tracked-source privacy checks, and the 15-file audio ZIP integrity check passed. Browser evidence and per-recording decode results are saved locally.
+
+The 0.1.1 shutdown patch was also exercised against a real isolated server: background startup succeeded, graceful stop succeeded, and its port no longer accepted connections. The daily-use server was left running. Timeout reporting is covered by a failing-before/fixed-after regression.
 
 ## Boundaries
 

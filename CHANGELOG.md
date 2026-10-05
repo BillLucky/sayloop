@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.1 — 2026-10-05
+
+- Report a nonzero failure when the background server has not exited after a stop request; never claim a successful stop while it remains running.
+- Add regression coverage for exited, zombie, and still-running processes.
+- Refresh the delivery checklist and operational troubleshooting.
+
+收尾补丁：修正停止服务超时后的误报，补齐进程退出回归测试与交付索引。个人语料与录音保持不变。
+
 ## 0.1.0 — 2026-10-05
 
 Initial private release of Sayloop.

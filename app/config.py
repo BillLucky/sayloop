@@ -4,7 +4,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 DATA = Path(os.environ.get("LLH_DATA_DIR", ROOT / "data")).expanduser().resolve()
 REPO_ID = "hexgrad/Kokoro-82M"
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 REVISION = "f3ff3571791e39611d31c381e3a41a3af07b4987"
 SAMPLE_RATE = 24000
 LANGUAGES = {

@@ -10,3 +10,9 @@
 - Prepared Sayloop branding, contributor and operation guides, privacy checks, private source packaging, source-only CI, and a future container deployment recipe. Kept current release private and personal artifacts out of source history.
 
 Acceptance evidence and limitations are recorded in [VALIDATION.md](VALIDATION.md). Actual user data and evidence artifacts are local and intentionally absent from this repository.
+
+## 2026-10-05 — 0.1.1 closeout
+
+- Rechecked the private remote, successful initial CI runs, clean source tree, and live native server readiness.
+- Reproduced and fixed a misleading stop-script success message when graceful shutdown times out. Added isolated regression cases without stopping the daily-use server.
+- Added a delivery index covering completed scope, local artifacts, and explicitly unverified deployment targets.

@@ -27,7 +27,7 @@ async def lifespan(app):
     yield
 
 
-app = FastAPI(title="Sayloop", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Sayloop", version="0.1.1", lifespan=lifespan)
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "testserver"])
 
 

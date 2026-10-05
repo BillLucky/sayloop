@@ -72,6 +72,7 @@ npm test && npm run check && npm run format:check
 - [Architecture and implementation](docs/ARCHITECTURE.md)
 - [Operation, backup, migration, and packaging](docs/OPERATIONS.md)
 - [User guide / 中文使用说明](docs/USER_GUIDE.zh-CN.md)
+- [Delivery checklist / 交付索引](docs/DELIVERY.zh-CN.md)
 - [Verification record](docs/VALIDATION.md)
 - [Contributing](CONTRIBUTING.md), [privacy boundaries](SECURITY.md), [changelog](CHANGELOG.md)
 

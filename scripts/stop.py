@@ -28,4 +28,9 @@ for _ in range(50):
     if not process.stdout.strip() or process.stdout.strip().startswith("Z"):
         break
     time.sleep(0.1)
+else:
+    raise SystemExit(
+        f"Sayloop server {pid} is still running after the stop request. "
+        f"Check {DATA / 'logs/server.log'} and retry later; no forced stop was sent."
+    )
 print(f"Stopped Sayloop server {pid}. Your data is unchanged.")

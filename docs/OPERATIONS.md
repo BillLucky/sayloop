@@ -4,7 +4,7 @@
 
 Use Python 3.11, uv, FFmpeg, and an isolated `.venv`. Run `./scripts/setup.sh` once. This installs pinned dependencies, checks the model cache, and prepares the Japanese dictionary. On recent Apple SDKs, pyopenjtalk needs explicit POSIX include flags; the setup script supplies them locally without changing system compiler settings.
 
-`start.command` launches the background server and opens its page on macOS. For development use `.venv/bin/python scripts/serve.py`; Ctrl-C stops it. For background operation use `--background` and stop with `scripts/stop.py`, which checks process ownership and refuses to interrupt an active generation queue.
+`start.command` launches the background server and opens its page on macOS. For development use `.venv/bin/python scripts/serve.py`; Ctrl-C stops it. For background operation use `--background` and stop with `scripts/stop.py`, which checks process ownership and refuses to interrupt an active generation queue. If the process remains alive after five seconds, the command exits unsuccessfully and reports that it is still running. Inspect the log and retry later; it never escalates to a forced kill.
 
 The server is not registered as a login service. After a restart, run `start.command` again. Logs are in `data/logs/server.log`. Check readiness with `curl --noproxy '*' http://127.0.0.1:8765/api/health` if a local proxy is configured. Health indicates API availability; `loaded` becomes true after the first inference.
 
