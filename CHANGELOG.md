@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0 — 2026-10-05
+
+- Private Tailscale Serve setup, exact-host configuration, and optional trusted LAN startup.
+- Practice room can save complete audio on the current device and reuse it across page reloads without audio transfers; remove saved copies independently of server recordings.
+- Versioned audio caching, conditional ETags, range playback, and no-store metadata.
+- Public-source privacy gate now rejects private tailnet hostnames; operational configuration remains local.
+- Added network/cache regression coverage and phone/Docker operating instructions.
+
+
 ## Unreleased
 
 - Publish the source repository after owner-authorized history and artifact review. Personal learning materials remain local.

@@ -21,3 +21,9 @@ def test_sensitive_text_rejected():
 def test_only_reviewed_synthetic_images_allowed():
     assert inspect("docs/images/practice.jpg", "synthetic") is None
     assert inspect("docs/images/private.jpg", "synthetic") == "private/generated artifact"
+
+
+def test_private_tailnet_hostname_rejected():
+    domain = "workstation." + "tail-example." + "ts.net"
+    assert inspect("README.md", domain)
+    assert inspect("README.md", "https://YOUR_TAILSCALE_HOST/#practice") is None

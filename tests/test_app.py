@@ -111,9 +111,26 @@ def test_generation_lifecycle_and_download(client, monkeypatch):
     job = client.get(f"/api/generations/{response.json()['id']}").json()
     assert job["status"] == "completed"
     assert job["progress"] == 100
-    audio = client.get(job["audio_url"] + "?download=true")
+    audio = client.get(job["audio_url"] + "&download=true")
     assert audio.status_code == 200
     assert "attachment" in audio.headers["content-disposition"]
+    assert audio.headers["cache-control"] == "private, max-age=31536000, immutable"
+    assert (
+        client.get(job["audio_url"], headers={"If-None-Match": audio.headers["etag"]}).status_code
+        == 304
+    )
+    partial = client.get(job["audio_url"], headers={"Range": "bytes=0-2"})
+    assert partial.status_code == 206 and partial.content == b"ID3"
+    assert (
+        client.get(job["audio_url"].split("?")[0]).headers["cache-control"] == "private, no-cache"
+    )
+    from app import main
+
+    (main.DATA / "audio" / f"{job['id']}.mp3").write_bytes(b"ID3-new-version")
+    updated = client.get(f"/api/generations/{job['id']}").json()
+    assert updated["audio_url"] != job["audio_url"]
+    assert client.get(job["audio_url"]).status_code == 410
+    assert client.get("/api/materials").headers["cache-control"] == "no-store"
     archive = zipfile.ZipFile(io.BytesIO(client.get("/api/export").content))
     assert any(p.endswith(".mp3") for p in archive.namelist())
     assert any(p.endswith(".txt") for p in archive.namelist())

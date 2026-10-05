@@ -8,7 +8,7 @@ from typing import Annotated
 from urllib.parse import urlparse
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 from starlette.middleware.trustedhost import TrustedHostMiddleware
@@ -16,6 +16,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from .config import DATA, LANGUAGES, ROOT, VOICE_NAMES, VOICE_NOTES, ensure_dirs
 from .engine import engine
 from .jobs import recover_jobs, submit
+from .network import settings
 from .storage import get_job, get_material, list_jobs, list_materials, save_material
 from .text import clean_text
 
@@ -27,8 +28,8 @@ async def lifespan(app):
     yield
 
 
-app = FastAPI(title="Sayloop", version="0.2.0", lifespan=lifespan)
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "testserver"])
+app = FastAPI(title="Sayloop", version="0.3.0", lifespan=lifespan)
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings()["allowed_hosts"])
 
 
 @app.middleware("http")
@@ -44,6 +45,10 @@ async def local_only(request: Request, call_next):
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'"
     )
+    if "cache-control" not in response.headers:
+        response.headers["Cache-Control"] = (
+            "no-store" if request.url.path.startswith("/api/") else "no-cache"
+        )
     return response
 
 
@@ -153,21 +158,39 @@ def generate(item: GenerationInput):
         raise HTTPException(429, str(error)) from error
 
 
+def audio_version(path):
+    stat = path.stat()
+    return f"{stat.st_mtime_ns:x}-{stat.st_size:x}"
+
+
+def audio_versions(job):
+    job = dict(job)
+    if job["status"] == "completed":
+        for extension, key in (("mp3", "audio_url"), ("wav", "wav_url")):
+            path = DATA / "audio" / f"{job['id']}.{extension}"
+            if path.is_file():
+                job[key] = f"/api/audio/{path.name}?v={audio_version(path)}"
+    return job
+
+
 @app.get("/api/generations")
 def generations():
-    return [{k: v for k, v in job.items() if k not in ("text", "segments")} for job in list_jobs()]
+    return [
+        {k: v for k, v in audio_versions(job).items() if k not in ("text", "segments")}
+        for job in list_jobs()
+    ]
 
 
 @app.get("/api/generations/{identifier}")
 def generation(identifier: str):
     try:
-        return get_job(identifier)
+        return audio_versions(get_job(identifier))
     except (ValueError, FileNotFoundError):
         raise HTTPException(404, "Generation not found.") from None
 
 
 @app.get("/api/audio/{filename}")
-def audio(filename: str, download: bool = False):
+def audio(filename: str, request: Request, download: bool = False, v: str = ""):
     match = re.fullmatch(r"([a-f0-9]{32})\.(mp3|wav)", filename)
     if not match:
         raise HTTPException(404, "Audio not found.")
@@ -175,9 +198,19 @@ def audio(filename: str, download: bool = False):
     path = DATA / "audio" / filename
     if job["status"] != "completed" or not path.is_file():
         raise HTTPException(404, "Audio is not ready.")
+    version = audio_version(path)
+    if v and v != version:
+        raise HTTPException(410, "Recording changed. Refresh the library.")
+    headers = {
+        "Cache-Control": "private, max-age=31536000, immutable" if v else "private, no-cache",
+        "ETag": f'"{version}"',
+    }
+    if request.headers.get("if-none-match") in (headers["ETag"], "*"):
+        return Response(status_code=304, headers=headers)
     title = re.sub(r"[^\w .-]", "_", job["title"])[:100]
     return FileResponse(
         path,
+        headers=headers,
         media_type="audio/mpeg" if match[2] == "mp3" else "audio/wav",
         filename=f"{title}-{job['voice']}.{match[2]}" if download else None,
     )

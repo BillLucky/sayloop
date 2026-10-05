@@ -1,3 +1,4 @@
+import { cachedAudio, saveAudio, removeAudio } from './audio-cache.js';
 import { PracticePlayer, shortcutAction } from './practice-player.js';
 
 const $ = (selector) => document.querySelector(selector);
@@ -148,7 +149,7 @@ function renderJobs() {
     jobs
       .map(
         (j) =>
-          `<div class="job-row"><span class="document-icon">${icon(j.kind === 'preview' ? 'wave' : 'music')}</span><div class="job-info"><strong>${escape(j.title)}</strong><small>${escape(j.voice.replace('am_', '').replaceAll('_', ' '))} · ${j.kind === 'preview' ? 'Preview' : 'Full recording'} · ${j.speed}× · ${j.status === 'completed' ? time(j.duration) : escape(j.status)}${j.status === 'running' ? ` ${j.progress}%` : ''}</small>${['queued', 'running'].includes(j.status) ? `<div class="job-progress"><span style="width:${j.progress}%"></span></div>` : ''}${j.error ? `<small class="error">${escape(j.error)}</small>` : ''}</div>${j.status === 'completed' ? `<button class="icon-button" data-play="${j.id}" aria-label="Play recording">${icon('play')}</button><a class="icon-button" href="${j.audio_url}?download=true" aria-label="Download MP3">${icon('download')}</a><a class="text-button" href="${j.wav_url}?download=true">WAV</a>${j.kind === 'full' ? `<button class="text-button" data-practice="${j.id}">Practice ↗</button>` : ''}` : ['failed', 'interrupted'].includes(j.status) ? `<button class="text-button" data-retry="${j.id}">Retry ↻</button>` : ''}</div>`
+          `<div class="job-row"><span class="document-icon">${icon(j.kind === 'preview' ? 'wave' : 'music')}</span><div class="job-info"><strong>${escape(j.title)}</strong><small>${escape(j.voice.replace('am_', '').replaceAll('_', ' '))} · ${j.kind === 'preview' ? 'Preview' : 'Full recording'} · ${j.speed}× · ${j.status === 'completed' ? time(j.duration) : escape(j.status)}${j.status === 'running' ? ` ${j.progress}%` : ''}</small>${['queued', 'running'].includes(j.status) ? `<div class="job-progress"><span style="width:${j.progress}%"></span></div>` : ''}${j.error ? `<small class="error">${escape(j.error)}</small>` : ''}</div>${j.status === 'completed' ? `<button class="icon-button" data-play="${j.id}" aria-label="Play recording">${icon('play')}</button><a class="icon-button" href="${j.audio_url}${j.audio_url.includes('?') ? '&' : '?'}download=true" aria-label="Download MP3">${icon('download')}</a><a class="text-button" href="${j.wav_url}${j.wav_url.includes('?') ? '&' : '?'}download=true">WAV</a>${j.kind === 'full' ? `<button class="text-button" data-practice="${j.id}">Practice ↗</button>` : ''}` : ['failed', 'interrupted'].includes(j.status) ? `<button class="text-button" data-retry="${j.id}">Retry ↻</button>` : ''}</div>`
       )
       .join('') ||
     `<div class="empty-state"><p>No recordings yet. Start with a short preview.</p></div>`;
@@ -381,21 +382,70 @@ async function practiceAction(action) {
   return transport.playSentence(index);
 }
 
+let audioLoadSequence = 0;
+let activeBlobUrl;
+async function deviceStatus(job) {
+  try {
+    const blob = await cachedAudio(job.audio_url);
+    if (state.currentJob?.id !== job.id) return;
+    $('#save-device').disabled = false;
+    $('#save-device').textContent = blob ? 'Saved on this device ✓' : 'Save on this device';
+    $('#remove-device').hidden = !blob;
+    $('#device-status').textContent = blob
+      ? `${(blob.size / 1048576).toFixed(1)} MB saved · reused when you reopen this recording`
+      : 'Save over Wi-Fi to avoid audio transfers on walks.';
+  } catch {
+    $('#device-status').textContent = 'Device storage unavailable; playback still works online.';
+    $('#save-device').disabled = true;
+  }
+}
+$('#save-device').addEventListener(
+  'click',
+  safely(async () => {
+    const job = state.currentJob;
+    if (!job) return;
+    $('#save-device').disabled = true;
+    $('#save-device').textContent = 'Saving…';
+    try {
+      await saveAudio(job.audio_url);
+      toast('Audio saved on this device. Keep using this same website address.');
+    } finally {
+      if (state.currentJob) await deviceStatus(state.currentJob);
+    }
+  })
+);
+$('#remove-device').addEventListener(
+  'click',
+  safely(async () => {
+    const job = state.currentJob;
+    if (!job) return;
+    await removeAudio(job.audio_url);
+    await deviceStatus(state.currentJob);
+    toast('Device copy removed. The original recording is unchanged.');
+  })
+);
 async function loadAudio(id, autoplay = true) {
   if (state.currentJob?.id !== id) {
+    const sequence = ++audioLoadSequence;
     audio.pause();
     const job = await api(`/generations/${id}`);
     if (job.status !== 'completed') throw new Error('This recording is not ready yet.');
+    const blob = await cachedAudio(job.audio_url).catch(() => null);
+    if (sequence !== audioLoadSequence) throw new Error('Another recording was selected.');
     state.currentJob = job;
     state.segment = -1;
-    audio.src = job.audio_url;
+    if (activeBlobUrl) URL.revokeObjectURL(activeBlobUrl);
+    activeBlobUrl = blob ? URL.createObjectURL(blob) : null;
+    audio.src = activeBlobUrl || job.audio_url;
+    void deviceStatus(job);
     transport.load([]);
     audio.playbackRate = Number($('#playback-rate').value);
     $('#player-title').textContent = job.title;
     $('#player-subtitle').textContent =
       `${job.voice} · ${job.kind === 'preview' ? 'Preview' : 'Full recording'}`;
     $('#duration').textContent = time(job.duration);
-    $('#player-download').href = `${job.audio_url}?download=true`;
+    $('#player-download').href =
+      `${job.audio_url}${job.audio_url.includes('?') ? '&' : '?'}download=true`;
     $('.player').hidden = false;
     document.body.classList.add('player-visible');
   }

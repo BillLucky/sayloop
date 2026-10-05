@@ -52,3 +52,9 @@ A foreground animation frame checks boundaries for precise interaction; `timeupd
 ## Extension points
 
 Another TTS engine should implement the current audio/segment result contract. Network multi-user deployment requires authentication, authorization, isolated data ownership, upload limits, and a durable job queue before exposing this application beyond a trusted host. Translation, microphone recording, pronunciation scoring, and cloud accounts are outside the current release.
+
+## Network boundary and device cache
+
+`app/network.py` reads ignored native settings and optional exact-host environment configuration. Default binding stays loopback; optional LAN binding requires a private IPv4 address. Tailscale Serve terminates private HTTPS. Metadata APIs use `no-store`; static source revalidates. Audio URLs use file modification nanoseconds and size as their revision, with private immutable caching and ETag/Range support. Stale revisions return 410.
+
+`web/audio-cache.js` stores explicitly saved complete audio blobs in IndexedDB, keyed by versioned URL. The player reuses blob URLs on later loads and revokes replaced object URLs. Cache failures do not block online playback. No service worker or offline metadata store is installed. Cache changes never mutate server recordings.

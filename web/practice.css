@@ -478,3 +478,21 @@ kbd {
     padding-bottom: 106px;
   }
 }
+
+.device-cache {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 16px 20px;
+  margin-top: 12px;
+}
+.device-cache > div {
+  flex: 1;
+  min-width: 200px;
+}
+.device-cache small {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+}

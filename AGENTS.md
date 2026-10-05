@@ -28,3 +28,7 @@ Use pytest (`test_*.py`) and Node's native test runner (`*.test.mjs`). Use synth
 ## Commit & Pull Request Guidelines
 
 The initial release establishes focused Conventional Commit prefixes such as `feat:`, `fix:`, and `docs:`. Explain the trigger, resulting behavior, and verification in reviews. Use synthetic screenshots. Update the changelog and affected technical guides. Keep the repository private until the owner explicitly authorizes public release; audit history and artifacts before changing visibility.
+
+## Public Repository Privacy Gate
+
+The owner has authorized public source publication. Before every commit/push, review staged contents and run `python3 scripts/privacy_check.py --history`. Keep device names, actual LAN/Tailscale addresses, account identifiers, network configuration and operational evidence only in ignored `data/` or local Codex memory. Use placeholder hosts and synthetic fixtures in public documentation and tests. Never upload personal corpus/audio, model weights, browser storage, or real screenshots. Source publication does not authorize public access to the running service; use private Tailscale Serve, never Funnel.

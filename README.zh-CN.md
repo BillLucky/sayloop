@@ -119,3 +119,7 @@ python3 scripts/privacy_check.py --history
 当前应用源码采用 [Apache-2.0](LICENSE)。第三方依赖和模型保留各自协议，包含 GPL/LGPL 等组件，详见 [第三方说明](THIRD_PARTY_NOTICES.md)。应用协议不替代模型、字典或用户文本的权利要求。
 
 练习流程受到[李笑来](https://github.com/xiaolai)的 [《一千小时》](https://1000h.org/why.html)及其[启动任务](https://1000h.org/training-tasks/kick-off.html)启发：准备对自己有意义的内容，听、说、重复。感谢作者与 [人人都能用英语 / Enjoy 社区](https://github.com/ZuodaoTech/everyone-can-use-english)公开分享方法和工程。Sayloop 是独立实现，不代表原作者或社区的官方项目或背书，详见[致谢](docs/ACKNOWLEDGEMENTS.md)。个人语料与音频不随源码发布。
+
+## 手机访问与音频缓存
+
+通过 Tailscale 私有 HTTPS，在家或散步时都能用手机练习。进入 Practice room，选择录音，点击 **Save on this device**，等保存完成后重新打开录音即可复用设备内的音频。Wi-Fi 和蜂窝网络请使用同一个网站地址；网页和字幕加载仍需连接电脑。也支持手动开启可信局域网访问。详见[手机配置、缓存与隐私说明](docs/REMOTE_ACCESS.md)。

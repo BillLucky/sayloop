@@ -37,3 +37,7 @@
 网页支持 MP3、WAV 下载，以及整批 ZIP。运行 `.venv/bin/python scripts/export_library.py` 可生成有名称的本地音频包。原文、生成记录、音频都在本地 `data/`，不会进入 GitHub 仓库。
 
 需要迁移时，保存浏览器里的草稿到文章库，停止空闲服务，备份整个 `data/`。不要只复制 MP3，因为逐句时间点在 `data/jobs/`。详细部署与恢复方式见 [运维说明](OPERATIONS.md)。
+
+## 手机和散步练习
+
+推荐在手机上安装并连接 Tailscale，始终使用电脑配置好的同一个 HTTPS 地址。在 Practice room 中选择录音，点 **Save on this device**，出现已保存提示后再重新打开录音；后续播放和跳句使用手机缓存。每篇分别保存，**Remove device copy** 只清除浏览器保存副本。不同浏览器、局域网 IP 和 HTTPS 地址的缓存互不相通。网页和字幕仍要连接电脑，电脑需保持开机清醒；纯离线使用可下载 MP3 到手机播放器。配置步骤见 [REMOTE_ACCESS.md](REMOTE_ACCESS.md)。

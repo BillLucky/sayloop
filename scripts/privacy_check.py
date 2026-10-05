@@ -35,6 +35,7 @@ PATTERNS = [
     re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
     re.compile(r"\b(?:ghp_|gho_|hf_)[A-Za-z0-9]{25,}\b"),
     re.compile(r"/Users/[A-Za-z0-9._-]+/"),
+    re.compile(r"\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.ts\.net\b", re.IGNORECASE),
 ]
 
 
@@ -51,7 +52,7 @@ def inspect(name, content):
     if artifact(name):
         return "private/generated artifact"
     if any(pattern.search(content) for pattern in PATTERNS):
-        return "credential or personal home path pattern"
+        return "credential, personal home path, or private tailnet hostname pattern"
     return None
 
 

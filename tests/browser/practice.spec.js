@@ -185,3 +185,44 @@ test('synthetic library and studio walkthrough', async ({ page }, testInfo) => {
   if (testInfo.project.name === 'desktop')
     await page.screenshot({ path: 'data/validation/studio-0.2.0.jpg', quality: 85 });
 });
+
+test('saved audio survives reload and plays/seeks without audio network requests', async ({ page }, testInfo) => {
+  await page.locator('#save-device').click();
+  await expect(page.locator('#save-device')).toHaveText('Saved on this device ✓');
+  await page.screenshot({path: `data/validation/cache-${testInfo.project.name}-0.3.0.png`, fullPage: true});
+  let requests = 0;
+  await page.route('**/api/audio/**', route => { requests++; return route.abort(); });
+  await page.reload();
+  await page.locator('#practice-recording').selectOption('synthetic');
+  await expect(page.locator('#audio')).toHaveAttribute('src', /^blob:/);
+  await page.locator('.passage').nth(12).click();
+  await expect.poll(() => page.locator('#audio').evaluate(el => el.currentTime)).toBeGreaterThan(24);
+  expect(requests).toBe(0);
+  await page.locator('#remove-device').click();
+  await expect(page.locator('#save-device')).toHaveText('Save on this device');
+  await page.reload();
+  await page.locator('#practice-recording').selectOption('synthetic');
+  await expect(page.locator('#audio')).toHaveAttribute('src', job.audio_url);
+});
+
+test('a failed device download is retryable and never marked saved', async ({ page }) => {
+  await page.route('**/api/audio/**', route => route.fulfill({ status: 503 }));
+  await page.locator('#save-device').click();
+  await expect(page.locator('#toast')).toContainText('Unable to save');
+  await expect(page.locator('#save-device')).toBeEnabled();
+  await expect(page.locator('#save-device')).toHaveText('Save on this device');
+  await expect(page.locator('#remove-device')).toBeHidden();
+});
+
+
+test('unavailable device storage leaves online playback usable', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'indexedDB', { get() { throw new Error('Storage unavailable'); } });
+  });
+  await page.reload();
+  await page.locator('#practice-recording').selectOption('synthetic');
+  await expect(page.locator('#save-device')).toBeDisabled();
+  await expect(page.locator('#device-status')).toContainText('storage unavailable');
+  await page.locator('.passage').first().click();
+  await expect.poll(() => page.locator('#audio').evaluate(el => el.currentTime)).toBeGreaterThan(0.1);
+});

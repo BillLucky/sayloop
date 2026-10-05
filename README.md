@@ -121,3 +121,7 @@ Native and Docker installation instructions are provided. See the validation rec
 ## Credits and license
 
 Application code: [Apache-2.0](LICENSE). Kokoro weights and third-party packages retain their own licenses; see [third-party notices](THIRD_PARTY_NOTICES.md). The practice workflow is inspired by [Li Xiaolai](https://github.com/xiaolai)'s [1000 Hours](https://1000h.org/why.html), especially its [kick-off task](https://1000h.org/training-tasks/kick-off.html): prepare meaningful personal text, listen, speak, and repeat. Thank you to the author and the [everyone-can-use-english / Enjoy community](https://github.com/ZuodaoTech/everyone-can-use-english) for sharing their work. Sayloop is an independent implementation, with no implied affiliation or endorsement. See [acknowledgements](docs/ACKNOWLEDGEMENTS.md).
+
+## Phone access and saving audio
+
+Use private Tailscale HTTPS to practice from your phone at home or on walks. Practice room → **Save on this device** stores complete recordings in that browser and reuses them on later visits. Keep the same website address on Wi-Fi and cellular; library loading still needs the server. Optional trusted LAN access is also available. See [setup, caching, and privacy instructions](docs/REMOTE_ACCESS.md).

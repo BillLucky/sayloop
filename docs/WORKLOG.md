@@ -37,3 +37,9 @@ Acceptance evidence and limitations are recorded in [VALIDATION.md](VALIDATION.m
 - The owner explicitly authorized changing repository visibility after privacy review. Re-fetched all branches and tags and reviewed tracked history, noreply author metadata, release attachments, and Actions artifacts. No personal material/audio or credentials were found; the four documentation images contain synthetic examples.
 - Updated current documentation for public source distribution and credited Li Xiaolai's 1000 Hours and the everyone-can-use-english / Enjoy community. Historical entries describe the visibility at the time.
 - Confirmed GitHub visibility is PUBLIC and the repository is readable without authentication. Posted one [Show and tell discussion](https://github.com/ZuodaoTech/everyone-can-use-english/discussions/1418) sharing the learning workflow and thanking the author/community. This records outreach, not upstream endorsement or acceptance.
+
+## 2026-10-05 — v0.3.0 phone access and audio cache
+
+Added private Tailscale Serve setup, opt-in LAN startup, exact-host configuration and Docker environment support. Added explicit per-recording browser storage, reuse on later loads and device-only removal. Audio responses now have versioned URLs, private immutable caching, ETag and range support; metadata remains no-store. Updated English/Chinese entry documentation, operations, architecture and security guidance.
+
+Verified 45 Python, 7 Node and 12 Chrome tests; tested real HTTPS/LAN audio and cached playback with no audio requests. Preserved all existing audio hashes. Private network configuration/evidence remains ignored; the public scanner now detects tailnet hostnames and AGENTS.md requires a privacy review before every commit/push. Global DNS/proxy settings were left unchanged; physical-phone testing remains with the owner.

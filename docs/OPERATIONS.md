@@ -55,3 +55,7 @@ For a personal remote server, keep the listener private and use an SSH tunnel (`
 5. Before each release, audit Git history and release assets, use synthetic screenshots only, review licenses, and validate the target deployment platform. Public visibility was explicitly authorized by the owner on 2026-10-05.
 
 Audio packs are personal exports, never GitHub release assets. No automated deployment or public publishing occurs in this repository.
+
+## Private phone access
+
+Use `scripts/network.py --tailscale` with the project Python to configure private HTTPS, or `--lan YOUR_COMPUTER_LAN_IPV4` to opt into trusted LAN HTTP. Restart only after generation finishes. Settings remain in ignored `data/network.json`; startup prints configured access URLs locally. Follow [remote access operations](REMOTE_ACCESS.md) for setup, rollback, Docker and browser cache behavior.

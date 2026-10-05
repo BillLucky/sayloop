@@ -68,3 +68,7 @@ python3 scripts/smoke_deployment.py --url http://127.0.0.1:8768 --receipt data/v
 ```
 
 See [validation](VALIDATION.md) for the platforms actually exercised. Container recipes are distributed as source only; no prebuilt image is published. Review [third-party obligations](../THIRD_PARTY_NOTICES.md) before redistributing a bundled image.
+
+## Private phone access
+
+Keep host port publication on loopback. Set the exact `SAYLOOP_ALLOWED_HOSTS` hostname in ignored `.env`, recreate Compose, then run Tailscale Serve on the host. See [phone access](REMOTE_ACCESS.md#docker). Real device and network configuration must not enter the image or public repository.

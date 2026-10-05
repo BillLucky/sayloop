@@ -1,4 +1,4 @@
-"""Start the loopback-only server; --background leaves it running after the shell exits."""
+"""Start the local server using ignored network settings; --background leaves it running after the shell exits."""
 
 import argparse
 import os
@@ -11,12 +11,20 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from app.config import DATA, ensure_dirs
+from app.network import settings
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--port", type=int, default=8765)
 parser.add_argument("--background", action="store_true")
 args = parser.parse_args()
+if not 1 <= args.port <= 65535:
+    parser.error("Port must be between 1 and 65535")
 ensure_dirs()
+network = settings()
+if network.get("phone_url"):
+    print("Phone: " + network["phone_url"])
+if network.get("lan_ip"):
+    print(f"Trusted LAN: http://{network['lan_ip']}:{args.port}/#practice")
 url = f"http://127.0.0.1:{args.port}"
 opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 try:
@@ -31,7 +39,7 @@ command = [
     "uvicorn",
     "app.main:app",
     "--host",
-    "127.0.0.1",
+    "0.0.0.0" if network.get("lan_ip") else "127.0.0.1",
     "--port",
     str(args.port),
 ]
