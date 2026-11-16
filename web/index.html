@@ -1,22 +1,75 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN" data-type="software">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#143c32" />
-    <title>Sayloop — Your words, out loud.</title>
+    <title>Sayloop · 语料创作与语言练习</title>
+    <meta name="description" content="整理自己的表达，创作场景对话，生成声音并逐句练习。" />
+    <meta name="page-type" content="software" />
+    <meta name="site-kind" content="software" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/style.css" />
     <script src="/app.js" type="module"></script>
   </head>
-  <body>
+  <body class="auth-pending">
+    <a class="skip-link" href="#main-content">跳到工作区</a>
+    <section id="auth-screen" class="auth-screen">
+      <div class="auth-intro">
+        <span class="brand-mark">s</span>
+        <h1>Sayloop</h1>
+        <p>把想说的话，练成自己的表达。</p>
+        <ol>
+          <li>写下想法，打磨中文</li>
+          <li>创作表达，演练场景</li>
+          <li>选择声音，逐句练习</li>
+        </ol>
+      </div>
+      <form method="post" id="auth-form" class="panel auth-form">
+        <h2 id="auth-heading">登录你的学习空间</h2>
+        <p>语料、创作版本和学习记录随账号保存。</p>
+        <label for="login-name">账号</label
+        ><input
+          id="login-name"
+          name="username"
+          autocomplete="username"
+          required
+          minlength="3"
+          maxlength="40"
+          pattern="[a-zA-Z0-9_.-]+"
+        />
+        <label for="login-password">密码</label
+        ><input
+          id="login-password"
+          type="password"
+          name="password"
+          autocomplete="current-password"
+          required
+          maxlength="200"
+        />
+        <div id="register-fields" hidden>
+          <label for="register-name">学习昵称</label
+          ><input id="register-name" maxlength="40" autocomplete="nickname" /><label
+            for="register-code"
+            >管理员邀请码</label
+          ><input id="register-code" maxlength="100" autocomplete="off" />
+        </div>
+        <p id="auth-error" class="form-error" role="alert"></p>
+        <button id="auth-submit" class="button primary full" type="submit">登录学习空间</button>
+        <button id="auth-switch" class="text-button" type="button">使用邀请码创建账号</button>
+        <p class="field-help">首次使用：管理员登录信息保存在服务器 data/OWNER_LOGIN.txt。</p>
+      </form>
+    </section>
     <aside class="sidebar">
       <a class="brand" href="#library" aria-label="Sayloop home"
         ><span class="brand-mark">s</span
         ><span class="brand-word">Sayloop<small>Your words, out loud.</small></span></a
       >
-      <div class="workspace-label">YOUR PERSONAL WORKSPACE</div>
+      <div class="workspace-label">个人学习空间</div>
       <nav aria-label="Main navigation">
+        <button class="nav-item" data-view="authoring" aria-label="语料创作" title="语料创作">
+          <span data-icon="spark"></span><span class="nav-text">语料创作</span>
+        </button>
         <button
           class="nav-item active"
           data-view="library"
@@ -32,7 +85,7 @@
           aria-label="Speech studio"
           title="Speech studio"
         >
-          <span data-icon="sliders"></span><span class="nav-text">Speech studio</span>
+          <span data-icon="sliders"></span><span class="nav-text">语音工作台</span>
         </button>
         <button
           class="nav-item"
@@ -40,7 +93,7 @@
           aria-label="Voice collection"
           title="Voice collection"
         >
-          <span data-icon="wave"></span><span class="nav-text">Voice collection</span>
+          <span data-icon="wave"></span><span class="nav-text">声音库</span>
         </button>
         <button
           class="nav-item"
@@ -48,7 +101,10 @@
           aria-label="Practice room"
           title="Practice room"
         >
-          <span data-icon="headphones"></span><span class="nav-text">Practice room</span>
+          <span data-icon="headphones"></span><span class="nav-text">练习室</span>
+        </button>
+        <button class="nav-item" data-view="progress" aria-label="学习进度" title="学习进度">
+          <span data-icon="clock"></span><span class="nav-text">学习进度</span>
         </button>
       </nav>
       <div class="sidebar-note">
@@ -69,10 +125,56 @@
       </div>
       <div class="profile">
         <span class="avatar">S</span>
-        <div>Your workspace<small>One voice. Many possibilities.</small></div>
+        <div>
+          <strong id="profile-name">学习空间</strong
+          ><button id="logout" class="text-button">退出账号</button>
+        </div>
       </div>
     </aside>
 
+    <dialog id="metadata-dialog">
+      <form method="post" id="metadata-form">
+        <h2>管理语料</h2>
+        <label for="meta-title">标题</label><input id="meta-title" maxlength="160" required /><label
+          for="meta-tags"
+          >标签（用逗号分隔）</label
+        ><input id="meta-tags" maxlength="480" /><label class="checkbox-label"
+          ><input id="meta-favorite" type="checkbox" />收藏这份语料</label
+        ><label class="checkbox-label"
+          ><input id="meta-shared" type="checkbox" />共享给本服务的所有已登录用户（含录音）</label
+        ><label class="checkbox-label"><input id="meta-archived" type="checkbox" />归档语料</label>
+        <div class="dialog-actions">
+          <button type="button" data-close-dialog class="button secondary">取消修改</button
+          ><button class="button primary">保存设置</button>
+        </div>
+        <p id="metadata-error" class="form-error" role="alert"></p>
+      </form>
+    </dialog>
+    <dialog id="feedback-dialog">
+      <form method="post" id="feedback-form">
+        <h2>记录你的反馈</h2>
+        <label for="feedback-rating">这次效果怎么样</label
+        ><select id="feedback-rating">
+          <option value="5">5 · 很适合练习</option>
+          <option value="4">4 · 基本合适</option>
+          <option value="3">3 · 需要调整</option>
+          <option value="2">2 · 有明显问题</option>
+          <option value="1">1 · 需要重做</option></select
+        ><label for="feedback-note">哪里需要改进</label
+        ><textarea
+          id="feedback-note"
+          rows="4"
+          maxlength="2000"
+          placeholder="例如：女声语速再慢一点；对话再多一些追问"
+        ></textarea>
+        <p class="field-help">反馈会保存到你的账号。创作反馈可以带入下一轮修改。</p>
+        <div class="dialog-actions">
+          <button type="button" data-close-dialog class="button secondary">取消反馈</button
+          ><button class="button primary">保存反馈</button>
+        </div>
+        <p id="feedback-error" class="form-error" role="alert"></p>
+      </form>
+    </dialog>
     <div class="main-shell">
       <header class="topbar">
         <div>
@@ -87,45 +189,27 @@
           <span class="mobile-brand">Sayloop / </span><span class="muted">Workspace</span
           ><span class="slash">/</span><span id="breadcrumb">My materials</span>
         </div>
-        <span class="top-badge"><span class="status-dot"></span>On your device</span>
+        <button id="mobile-logout" class="text-button" type="button">退出账号</button
+        ><span class="top-badge"><span class="status-dot"></span>On your device</span>
       </header>
       <main id="main-content">
         <section id="view-library" class="view">
           <div class="page-heading">
             <div>
               <span class="eyebrow">MAKE IT YOUR OWN</span>
-              <h1>Your words, <em>out loud.</em></h1>
-              <p>Turn the things you want to say into the way you practice.</p>
+              <h1>你的语料，<em>你的表达。</em></h1>
+              <p>从想法到表达，从声音到记忆。</p>
             </div>
             <button class="button primary" id="new-material">
-              <span data-icon="plus"></span>New material
+              <span data-icon="plus"></span>直接导入文本
             </button>
           </div>
-          <div class="hero-card">
-            <div class="hero-copy">
-              <span class="pill light">YOUR DAILY PRACTICE, REIMAGINED</span>
-              <h2>A familiar story.<br />A new way to tell it.</h2>
-              <p>
-                Start with your own writing. Find a voice you enjoy.<br />Listen, repeat, and make
-                every sentence yours.
-              </p>
-              <button id="hero-start" class="button ivory">
-                Open speech studio<span data-icon="arrow"></span>
-              </button>
+          <div class="library-welcome">
+            <div>
+              <h2>今天，练习你想说的话。</h2>
+              <p>从一个想法或场景开始，打磨成文，再生成自己的练习音频。</p>
             </div>
-            <div class="hero-art" aria-hidden="true">
-              <div class="orbit orbit-one"></div>
-              <div class="orbit orbit-two"></div>
-              <div class="sound-card">
-                <div class="sound-header">
-                  <span class="mini-logo">s</span><span>Made from your words</span
-                  ><span class="sound-dot"></span>
-                </div>
-                <div class="waveform decorative-wave"></div>
-                <div class="sound-footer"><span>READ. LISTEN. REPEAT.</span><span>↻</span></div>
-              </div>
-              <span class="floating-label">Small steps. A stronger voice.</span>
-            </div>
+            <button id="hero-start" class="button primary">开始语料创作 →</button>
           </div>
           <div class="stats-row">
             <div>
@@ -137,8 +221,8 @@
               ><span>minutes ready to practice</span>
             </div>
             <div>
-              <span data-icon="wave"></span><strong>9</strong
-              ><span>American male voices to explore</span>
+              <span data-icon="wave"></span><strong>54</strong
+              ><span>voices to explore · 女声与男声</span>
             </div>
           </div>
           <div class="section-toolbar">
@@ -151,7 +235,7 @@
               ><input
                 id="search"
                 type="search"
-                placeholder="Find a material…"
+                placeholder="搜索标题、正文或标签…"
                 aria-label="Search materials"
             /></label>
           </div>
@@ -165,7 +249,34 @@
               <span data-icon="upload"></span>Import .txt / .md
             </button>
           </div>
+          <div class="library-filters">
+            <label for="library-language"
+              >语言<select id="library-language">
+                <option value="">全部语言</option>
+              </select></label
+            ><label for="library-kind"
+              >内容<select id="library-kind">
+                <option value="">全部类型</option>
+                <option value="dialogue">角色对话</option>
+                <option value="text">独白 / 文章</option>
+              </select></label
+            ><label for="library-scope"
+              >范围<select id="library-scope">
+                <option value="">全部可见</option>
+                <option value="mine">我的语料</option>
+                <option value="shared">共享语料</option>
+                <option value="favorite">收藏</option>
+                <option value="archived">已归档</option>
+              </select></label
+            ><label for="library-sort"
+              >排序<select id="library-sort">
+                <option value="new">最近添加</option>
+                <option value="title">按标题</option>
+              </select></label
+            >
+          </div>
           <div id="material-grid" class="material-grid"></div>
+          <button id="library-load-more" class="button secondary" hidden>再显示 24 份语料</button>
           <div class="library-bottom">
             <span>Everything here stays on your computer.</span
             ><a href="/api/export?kind=full" class="text-button"
@@ -174,6 +285,190 @@
           </div>
         </section>
 
+        <section id="view-authoring" class="view" hidden>
+          <div class="page-heading">
+            <div>
+              <span class="eyebrow">语料创作</span>
+              <h1>先说清楚，<em>再练熟。</em></h1>
+              <p>保留你的意思，找到适合场合的说法。</p>
+            </div>
+            <button id="new-composition" class="button secondary">开始新创作</button>
+          </div>
+          <div class="authoring-layout">
+            <form method="post" id="author-form" class="panel author-input">
+              <div class="segmented author-modes" role="group" aria-label="创作任务">
+                <button type="button" data-author-mode="polish" aria-pressed="true">中文打磨</button
+                ><button type="button" data-author-mode="variants" aria-pressed="false">
+                  表达变体</button
+                ><button type="button" data-author-mode="scenario" aria-pressed="false">
+                  场景对话
+                </button>
+              </div>
+              <label for="author-source" id="source-label">写下你想说的话</label
+              ><textarea
+                id="author-source"
+                required
+                maxlength="12000"
+                rows="10"
+                placeholder="用中文写下你的想法，不用一开始就写得很完整。"
+              ></textarea>
+              <div class="author-source-tools">
+                <span id="source-count">0 / 12,000 字</span
+                ><label class="text-button" for="author-file"
+                  >导入纯文本<input id="author-file" type="file" accept=".txt,.md" hidden
+                /></label>
+              </div>
+              <div id="author-expression-options" class="author-options">
+                <label for="author-style"
+                  >表达风格<select id="author-style">
+                    <option value="spoken">日常口语</option>
+                    <option value="natural">自然美式</option>
+                    <option value="new_york">纽约日常口语</option>
+                    <option value="business">商务沟通</option>
+                    <option value="simple">基础表达</option>
+                  </select></label
+                ><label for="author-language">目标语言<select id="author-language"></select></label
+                ><label for="author-person"
+                  >叙述人称<select id="author-person">
+                    <option value="first">第一人称 · 我 / 我们</option>
+                    <option value="second">第二人称 · 你 / 你们</option>
+                    <option value="third">第三人称 · 他 / 她 / 他们</option>
+                  </select></label
+                ><label for="author-count"
+                  >生成数量<input
+                    id="author-count"
+                    type="number"
+                    min="1"
+                    max="30"
+                    value="3" /></label
+                ><label id="turns-field" for="author-turns" hidden
+                  >每组发言轮数<input id="author-turns" type="number" min="2" max="16" value="6"
+                /></label>
+              </div>
+              <label for="author-context">场合与目标</label
+              ><input
+                id="author-context"
+                maxlength="2000"
+                placeholder="例如：和采购方商议交付期限，希望争取多两周"
+              />
+              <label for="author-instructions">本轮修改要求</label
+              ><textarea
+                id="author-instructions"
+                rows="2"
+                maxlength="2000"
+                placeholder="例如：语气更直接；保留我的数字；补充对方追问"
+              ></textarea>
+              <button id="author-submit" class="button primary full" type="submit">
+                打磨这段中文
+              </button>
+              <p class="field-help">
+                创作使用自有模型服务，原文和每个版本都会保留。生成内容请确认后再入库。
+              </p>
+              <details class="prompt-source">
+                <summary>风格来源与使用原则</summary>
+                <p>
+                  参考李笑来 1000
+                  小时的个人语料准备方法：自然美式、常见短语与习语、简短和展开的表达。这里使用可修改的独立提示词，不承诺某个声音具有纽约口音。
+                </p>
+                <a
+                  href="https://1000h.org/training-tasks/kick-off.html"
+                  target="_blank"
+                  rel="noreferrer"
+                  >阅读方法原文 ↗</a
+                >
+              </details>
+            </form>
+            <div id="author-output" class="author-output">
+              <div class="revision-bar">
+                <label for="revision-select">创作历史</label
+                ><select id="revision-select">
+                  <option value="">还没有创作版本</option>
+                </select>
+              </div>
+              <p id="author-status" role="status" aria-live="polite">
+                写下想法，从中文打磨开始；也可以直接创建场景对话。
+              </p>
+              <div id="author-result" class="author-result">
+                <div class="result-empty">
+                  <span>01 → 02 → 03</span>
+                  <h2>想法 · 表达 · 声音</h2>
+                  <p>结果会留在这里，支持直接编辑、继续打磨和保存语料。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section id="view-progress" class="view" hidden>
+          <div class="page-heading">
+            <div>
+              <span class="eyebrow">学习进度</span>
+              <h1>每次练习，<em>都有记录。</em></h1>
+              <p>这里统计有效播放时间，开口练习由你自己完成。</p>
+            </div>
+            <button id="refresh-progress" class="button secondary">刷新学习记录</button>
+          </div>
+          <div id="progress-summary" class="progress-summary"></div>
+          <div class="progress-layout">
+            <div>
+              <section class="panel progress-panel">
+                <h2>近两周练习</h2>
+                <div id="activity-chart" class="activity-chart"></div>
+              </section>
+              <section class="panel progress-panel">
+                <h2>学习里程碑</h2>
+                <div id="milestones" class="milestones"></div>
+              </section>
+              <section class="panel progress-panel">
+                <h2>最近练习</h2>
+                <div id="recent-practice"></div>
+              </section>
+              <section class="panel progress-panel">
+                <h2>最近反馈</h2>
+                <div id="feedback-history"></div>
+              </section>
+            </div>
+            <div>
+              <form method="post" id="profile-form" class="panel progress-panel">
+                <h2>个人目标</h2>
+                <label for="display-name">学习昵称</label
+                ><input id="display-name" maxlength="40" required /><label for="daily-goal"
+                  >每天听多少分钟</label
+                ><input id="daily-goal" type="number" min="1" max="180" required /><label
+                  class="checkbox-label"
+                  ><input id="join-leaderboard" type="checkbox" />参加最近 7 天排行榜</label
+                >
+                <p class="field-help">参加后仅展示昵称和播放时长；语料与创作仍保持自己的权限。</p>
+                <button class="button secondary full">保存学习目标</button
+                ><button id="create-invite" class="text-button" type="button" hidden>
+                  生成一次性邀请码
+                </button>
+                <p id="invite-result" class="field-help" role="status"></p>
+              </form>
+              <section class="panel progress-panel">
+                <h2>最近 7 天排行榜</h2>
+                <ol id="leaderboard"></ol>
+              </section>
+              <form method="post" id="password-form" class="panel progress-panel">
+                <h2>修改密码</h2>
+                <label for="current-password">当前密码</label
+                ><input
+                  id="current-password"
+                  type="password"
+                  autocomplete="current-password"
+                  required
+                /><label for="new-password">新密码（至少 10 位）</label
+                ><input
+                  id="new-password"
+                  type="password"
+                  minlength="10"
+                  maxlength="200"
+                  autocomplete="new-password"
+                  required
+                /><button class="button secondary full">更新密码并重新登录</button>
+              </form>
+            </div>
+          </div>
+        </section>
         <section id="view-studio" class="view" hidden>
           <div class="page-heading">
             <div>
@@ -221,6 +516,12 @@
               ><select id="language"></select
               ><label class="field-label" for="voice">Voice</label
               ><select id="voice"></select>
+              <div id="voice-b-row" hidden>
+                <label class="field-label" for="voice-b">角色 B 的声音</label
+                ><select id="voice-b"></select>
+                <p id="dialogue-note" class="field-help"></p>
+                <button id="edit-dialogue" class="text-button">编辑对话内容</button>
+              </div>
               <p id="voice-note" class="field-help"></p>
               <button id="browse-voices" class="text-button">
                 Explore the voice collection <span>↗</span>
@@ -266,7 +567,7 @@
             <div>
               <span class="eyebrow">A VOICE WORTH COMING BACK TO</span>
               <h1>Find your <em>listening companion.</em></h1>
-              <p>Compare the same passage across all nine American male voices.</p>
+              <p>筛选语言和声音，比较男声与女声。</p>
             </div>
             <a class="button secondary" href="/api/export?kind=preview"
               ><span data-icon="download"></span>Download previews</a
@@ -276,12 +577,19 @@
             <span data-icon="headphones"></span>
             <div>
               <strong>Same words. Different character.</strong>
-              <p>
-                These previews use the opening of your first material. Fenrir is the starting choice
-                for full recordings; your ears get the final say.
-              </p>
+              <p>试听使用对应语言的短句；也可以在语音工作台使用自己的语料。</p>
             </div>
             <span class="pill">20–30 SECOND PREVIEWS</span>
+          </div>
+          <div class="library-filters">
+            <label for="voice-language">试听语言<select id="voice-language"></select></label
+            ><label for="voice-gender"
+              >声音<select id="voice-gender">
+                <option value="">男声与女声</option>
+                <option value="female">女声</option>
+                <option value="male">男声</option>
+              </select></label
+            >
           </div>
           <div id="voice-grid" class="voice-grid"></div>
           <div class="other-voices panel">
@@ -414,6 +722,7 @@
               </div>
             </div>
           </div>
+          <button id="audio-feedback" class="text-button">反馈这段录音的声音与节奏</button>
           <div id="transcript" class="transcript panel">
             <div class="empty-state">
               <span data-icon="book"></span>

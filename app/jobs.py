@@ -31,15 +31,18 @@ def run_job(identifier):
             put_job(job)
 
         output = DATA / "audio" / f"{identifier}.mp3"
-        result = engine.generate(
-            job["text"],
-            job["voice"],
-            job["speed"],
-            job["pause"],
-            output,
-            preview=job["kind"] == "preview",
-            progress=progress,
-        )
+        if job.get("turns"):
+            result = engine.generate_dialogue(job, output, progress)
+        else:
+            result = engine.generate(
+                job["text"],
+                job["voice"],
+                job["speed"],
+                job["pause"],
+                output,
+                preview=job["kind"] == "preview",
+                progress=progress,
+            )
         job.update(
             result,
             status="completed",
@@ -54,7 +57,7 @@ def run_job(identifier):
     put_job(job)
 
 
-def submit(text, title, voice, speed=1.0, pause=0.3, kind="full", material_id=None):
+def submit(text, title, voice, speed=1.0, pause=0.3, kind="full", material_id=None, **metadata):
     with submit_lock:
         active = sum(j["status"] in ("queued", "running") for j in list_jobs())
         if active >= 20:
@@ -71,6 +74,7 @@ def submit(text, title, voice, speed=1.0, pause=0.3, kind="full", material_id=No
             status="queued",
             progress=0,
             created_at=now(),
+            **metadata,
         )
         put_job(job)
         executor.submit(run_job, job["id"])

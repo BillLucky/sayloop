@@ -47,3 +47,9 @@ Verified 45 Python, 7 Node and 12 Chrome tests; tested real HTTPS/LAN audio and 
 ## 2026-10-05 — Direct Tailscale IP host-header fix
 
 Reproduced HTTP 400 when accessing the service by its numeric tailnet address: HTTPS setup had permitted the DNS hostname only. Added opt-in direct IPv4 setup/rollback, exact-host validation and persistent startup binding. Real direct-IP homepage, health and library now return 200; audio Range returns 206; unknown hosts still return 400. All 46 Python tests pass. Clash TUN, proxy rules and system DNS were left unchanged. Device IPs remain in ignored configuration only.
+
+## 2026-11-16 · Learning workspace
+
+Implemented Chinese polishing, configurable expression variants, batched scenario authoring, editable revision history, and primary/local model fallback. Added invitation-based accounts with private legacy ownership, account-aware audio/export checks, shared-material revocation, role-specific dialogue voices/timing, feedback, library filters, listening records, goals, milestones, and an opt-in leaderboard. Account-aware smoke checks and backup guidance now include the private SQLite database and model configuration. Source and operational evidence remain separate.
+
+Verified synthetic API/browser flows, real primary and local model inference, thirty-dialogue batches, male/female dialogue synthesis, and saved-audio playback without retransfers. See the dated [validation record](VALIDATION.md) and [workspace design](LEARNING_WORKSPACE.md). Physical phones, a cold machine reboot, and a new container build are outside this round's acceptance.

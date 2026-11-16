@@ -1,5 +1,12 @@
-import { cachedAudio, saveAudio, removeAudio } from './audio-cache.js';
+import { cachedAudio, saveAudio, removeAudio, adoptLegacyAudio } from './audio-cache.js';
 import { PracticePlayer, shortcutAction } from './practice-player.js';
+import {
+  authenticate,
+  initWorkspace,
+  refreshProgress,
+  manageMaterial,
+  beginStudy,
+} from './workspace.js';
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -68,6 +75,7 @@ function toast(message, error = false) {
 async function api(path, options) {
   const response = await fetch(`/api${path}`, options);
   if (!response.ok) {
+    if (response.status === 401 && state.user && path !== '/auth/login') location.reload();
     const error = await response.json().catch(() => ({}));
     const detail =
       typeof error.detail === 'string' ? error.detail : error.detail?.map((e) => e.msg).join('; ');
@@ -91,7 +99,8 @@ const safely =
     }
   };
 function showView(view) {
-  if (!['library', 'studio', 'voices', 'practice'].includes(view)) view = 'library';
+  if (!['library', 'studio', 'voices', 'practice', 'authoring', 'progress'].includes(view))
+    view = 'library';
   state.view = view;
   if (view !== 'practice') setImmersive(false);
   $$('.view').forEach((el) => (el.hidden = el.id !== `view-${view}`));
@@ -101,9 +110,13 @@ function showView(view) {
     studio: 'Speech studio',
     voices: 'Voice collection',
     practice: 'Practice room',
+    authoring: '语料创作',
+    progress: '学习进度',
   }[view];
   history.replaceState(null, '', `#${view}`);
   window.scrollTo({ top: 0 });
+  if (view === 'progress' && state.user)
+    void refreshProgress().catch((error) => toast(error.message, true));
 }
 function wave(seed = 0, count = 38) {
   return Array.from(
@@ -126,19 +139,40 @@ function renderLibrary() {
       .reduce((sum, j) => sum + j.duration, 0) / 60
   );
   const search = $('#search').value.toLowerCase();
-  const materials = state.materials.filter((m) => {
-    const ready = !!fullJob(m);
-    return (
-      (state.filter === 'all' || (state.filter === 'ready' ? ready : !ready)) &&
-      `${m.title} ${m.text}`.toLowerCase().includes(search)
+  const materials = state.materials
+    .filter((m) => {
+      const ready = !!fullJob(m);
+      return (
+        (m.archived
+          ? $('#library-scope').value === 'archived'
+          : $('#library-scope').value !== 'archived') &&
+        (!$('#library-language').value || m.language === $('#library-language').value) &&
+        (!$('#library-kind').value ||
+          ($('#library-kind').value === 'dialogue' ? m.turns?.length : !m.turns?.length)) &&
+        (!$('#library-scope').value ||
+          $('#library-scope').value === 'archived' ||
+          ($('#library-scope').value === 'mine'
+            ? m.owned
+            : $('#library-scope').value === 'shared'
+              ? m.visibility === 'shared'
+              : m.favorite)) &&
+        (state.filter === 'all' || (state.filter === 'ready' ? ready : !ready)) &&
+        `${m.title} ${m.text} ${(m.tags || []).join(' ')}`.toLowerCase().includes(search)
+      );
+    })
+    .sort((a, b) =>
+      $('#library-sort').value === 'title'
+        ? a.title.localeCompare(b.title)
+        : (b.created_at || '').localeCompare(a.created_at || '')
     );
-  });
   $('#library-count').textContent = materials.length;
+  $('#library-load-more').hidden = materials.length <= (state.libraryLimit || 24);
   $('#material-grid').innerHTML =
     materials
+      .slice(0, state.libraryLimit || 24)
       .map((m) => {
         const job = fullJob(m);
-        return `<article class="material-card"><div class="card-top"><span class="document-icon">${icon('file')}</span><span class="card-state ${job ? '' : 'draft'}">${icon(job ? 'check' : 'file')}${job ? 'Audio ready' : 'Text only'}</span></div><h3 class="card-title">${escape(m.title)}</h3><div class="card-subtitle">${escape(state.languages[m.language] || m.language)} · ${m.words.toLocaleString()} words${job ? ` · ${time(job.duration)}` : ''}</div><p class="card-excerpt">${escape(m.text.slice(0, 180))}${m.text.length > 180 ? '…' : ''}</p><div class="card-bottom"><button class="text-button" data-open="${m.id}">${job ? 'Open in studio' : 'Create audio'} ${icon('arrow')}</button><div class="card-actions">${job ? `<button class="icon-button" data-practice="${job.id}" aria-label="Practice ${escape(m.title)}">${icon('book')}</button><button class="icon-button" data-play="${job.id}" aria-label="Play ${escape(m.title)}">${icon('play')}</button>` : ''}</div></div></article>`;
+        return `<article class="material-card"><div class="card-top"><span class="document-icon">${icon(m.turns?.length ? 'headphones' : 'file')}</span><span class="card-state ${job ? '' : 'draft'}">${icon(job ? 'check' : 'file')}${job ? 'Audio ready' : 'Text only'}</span></div><h3 class="card-title">${m.favorite ? '☆ ' : ''}${escape(m.title)}</h3><div class="card-subtitle">${escape(state.languages[m.language] || m.language)} · ${m.words.toLocaleString()} words${job ? ` · ${time(job.duration)}` : ''}</div><div class="material-tags">${m.turns?.length ? '<span>角色对话</span>' : ''}<span>${m.visibility === 'shared' ? '已共享' : '私有'}</span>${(m.tags || []).map((tag) => `<span>${escape(tag)}</span>`).join('')}</div><p class="card-excerpt">${escape(m.text.slice(0, 180))}${m.text.length > 180 ? '…' : ''}</p><div class="card-bottom"><button class="text-button" data-open="${m.id}">${job ? 'Open in studio' : 'Create audio'} ${icon('arrow')}</button><div class="card-actions">${m.owned ? `<button class="text-button" data-manage="${m.id}">管理</button>` : ''}${job ? `<button class="icon-button" data-practice="${job.id}" aria-label="Practice ${escape(m.title)}">${icon('book')}</button><button class="icon-button" data-play="${job.id}" aria-label="Play ${escape(m.title)}">${icon('play')}</button>` : ''}</div></div></article>`;
       })
       .join('') ||
     `<div class="empty-state">${icon('library')}<h3>${search || state.filter !== 'all' ? 'No matching materials.' : 'Your story starts here.'}</h3><p>${search || state.filter !== 'all' ? 'Try another search or filter.' : 'Add your first text, or import a .txt or .md file.'}</p></div>`;
@@ -156,12 +190,16 @@ function renderJobs() {
 }
 function renderVoices() {
   $('#voice-grid').innerHTML = state.voices
-    .filter((v) => v.id.startsWith('am_'))
+    .filter(
+      (v) =>
+        v.language === $('#voice-language').value &&
+        (!$('#voice-gender').value || v.gender === $('#voice-gender').value)
+    )
     .map((v, i) => {
       const job = state.jobs.find(
         (j) => j.kind === 'preview' && j.voice === v.id && j.status === 'completed'
       );
-      return `<article class="voice-card ${v.id === $('#voice').value ? 'selected' : ''}">${v.id === 'am_fenrir' ? '<span class="pill">FULL-LENGTH DEFAULT</span>' : ''}<div class="card-top"><span class="voice-avatar">${v.name[0]}</span><div><h3>${v.name}</h3><small>American English · Male</small></div></div><div class="waveform" aria-hidden="true">${wave(i, 32)}</div><p>${escape(v.note)}</p><div class="card-bottom">${job ? `<button class="button secondary" data-play="${job.id}">${icon('play')}Listen · ${time(job.duration)}</button>` : `<button class="button secondary" data-sample="${v.id}">${icon('play')}Create preview</button>`}<button class="text-button" data-choose-voice="${v.id}">Use voice ↗</button></div></article>`;
+      return `<article class="voice-card ${v.id === $('#voice').value ? 'selected' : ''}">${v.id === 'am_fenrir' ? '<span class="pill">FULL-LENGTH DEFAULT</span>' : ''}<div class="card-top"><span class="voice-avatar">${v.name[0]}</span><div><h3>${v.name}</h3><small>${escape(state.languages[v.language])} · ${v.gender === 'female' ? '女声' : '男声'}</small></div></div><div class="waveform" aria-hidden="true">${wave(i, 32)}</div><p>${escape(v.note)}</p><div class="card-bottom">${job ? `<button class="button secondary" data-play="${job.id}">${icon('play')}Listen · ${time(job.duration)}</button>` : `<button class="button secondary" data-sample="${v.id}">${icon('play')}Create preview</button>`}<button class="text-button" data-choose-voice="${v.id}">Use voice ↗</button></div></article>`;
     })
     .join('');
 }
@@ -192,6 +230,8 @@ function updateVoiceSelect(preferred) {
         `<option value="${v.id}">${v.name} · ${v.gender === 'male' ? 'Male' : 'Female'}</option>`
     )
     .join('');
+  $('#voice-b').innerHTML = $('#voice').innerHTML;
+  $('#voice-b').value = voices.find((v) => v.gender === 'female')?.id || voices[0]?.id || '';
   if (voices.some((v) => v.id === preferred)) $('#voice').value = preferred;
   updateVoiceNote();
 }
@@ -206,7 +246,7 @@ function updateCount() {
 function rememberDraft() {
   try {
     localStorage.setItem(
-      'llh-draft',
+      `llh-draft-${state.user.id}`,
       JSON.stringify({
         title: $('#material-title').value,
         text: $('#editor').value,
@@ -225,6 +265,11 @@ function openMaterial(id) {
   state.materialId = id;
   $('#material-title').value = material.title;
   $('#editor').value = material.text;
+  $('#editor').readOnly = !!material.turns?.length;
+  $('#voice-b-row').hidden = !material.turns?.length;
+  $('#dialogue-note').textContent = material.turns?.length
+    ? `角色 A：${material.role_a} · 角色 B：${material.role_b}。正文只合成台词，不会读出角色名或中文释义。`
+    : '';
   $('#language').value = material.language;
   updateVoiceSelect(material.language === 'a' ? 'am_fenrir' : undefined);
   updateCount();
@@ -236,6 +281,8 @@ function newMaterial() {
   state.materialId = null;
   $('#material-title').value = '';
   $('#editor').value = '';
+  $('#editor').readOnly = false;
+  $('#voice-b-row').hidden = true;
   updateCount();
   renderJobs();
   rememberDraft();
@@ -264,6 +311,7 @@ async function generate(kind, voiceOverride) {
       title: material.title,
       language: voiceOverride ? voiceOverride[0] : $('#language').value,
       voice: voiceOverride || $('#voice').value,
+      voice_b: $('#voice-b-row').hidden ? null : $('#voice-b').value,
       speed: Number($('#speed').value),
       pause: Number($('#pause').value),
       kind,
@@ -316,6 +364,8 @@ function renderPractice() {
   $('#focus-current').textContent = current?.text || 'Make room for your voice.';
   $('#focus-previous').textContent = ready ? segments[index - 1]?.text || '' : '';
   $('#focus-next').textContent = ready ? segments[index + 1]?.text || '' : '';
+  if (current?.role)
+    $('#focus-cue').textContent = `${current.role} · ${$('#focus-cue').textContent}`;
   $('#focus-stage').classList.toggle('your-turn', waiting);
   $('.focus-play').innerHTML = icon(audio.paused ? 'play' : 'pause');
   $$('.focus-modes button, .mode-buttons button').forEach((el) =>
@@ -430,7 +480,9 @@ async function loadAudio(id, autoplay = true) {
     audio.pause();
     const job = await api(`/generations/${id}`);
     if (job.status !== 'completed') throw new Error('This recording is not ready yet.');
-    const blob = await cachedAudio(job.audio_url).catch(() => null);
+    const blob =
+      (await cachedAudio(job.audio_url).catch(() => null)) ||
+      (await adoptLegacyAudio(job.audio_url).catch(() => null));
     if (sequence !== audioLoadSequence) throw new Error('Another recording was selected.');
     state.currentJob = job;
     state.segment = -1;
@@ -438,6 +490,7 @@ async function loadAudio(id, autoplay = true) {
     activeBlobUrl = blob ? URL.createObjectURL(blob) : null;
     audio.src = activeBlobUrl || job.audio_url;
     void deviceStatus(job);
+    void beginStudy(job).catch((error) => toast(error.message, true));
     transport.load([]);
     audio.playbackRate = Number($('#playback-rate').value);
     $('#player-title').textContent = job.title;
@@ -460,7 +513,7 @@ async function practice(id) {
   $('#transcript').innerHTML = job.segments
     .map(
       (s, i) =>
-        `<button class="passage" data-segment="${i}"><span class="passage-number">${String(i + 1).padStart(2, '0')}<br>${time(s.start)}</span><span class="passage-text">${escape(s.text)}</span></button>`
+        `<button class="passage" data-segment="${i}"><span class="passage-number">${s.role ? escape(s.role) : String(i + 1).padStart(2, '0')}<br>${time(s.start)}</span><span class="passage-text">${escape(s.text)}${s.translation ? `<small class="passage-translation">${escape(s.translation)}</small>` : ''}</span></button>`
     )
     .join('');
   showView('practice');
@@ -484,6 +537,8 @@ document.addEventListener(
     }
     if (target.dataset.view) showView(target.dataset.view);
     if (target.dataset.open) openMaterial(target.dataset.open);
+    if (target.dataset.manage)
+      manageMaterial(state.materials.find((m) => m.id === target.dataset.manage));
     if (target.dataset.play) {
       if (state.currentJob?.id === target.dataset.play && !audio.paused) audio.pause();
       else await loadAudio(target.dataset.play);
@@ -495,24 +550,33 @@ document.addEventListener(
       renderLibrary();
     }
     if (target.dataset.chooseVoice) {
-      $('#language').value = 'a';
+      $('#language').value = target.dataset.chooseVoice[0];
       updateVoiceSelect(target.dataset.chooseVoice);
       renderVoices();
       showView('studio');
       toast(`${target.dataset.chooseVoice.slice(3)} selected. Your text is ready when you are.`);
     }
     if (target.dataset.sample) {
-      const material = [...state.materials].sort((a, b) => a.title.localeCompare(b.title))[0];
-      if (!material) throw new Error('Import a material first to create a voice preview.');
+      const voice = target.dataset.sample;
+      const samples = {
+        a: 'Could we go over the delivery schedule together? I would like to make sure we have enough time.',
+        b: 'Could we go over the delivery schedule together?',
+        z: '我们可以一起确认一下交付时间吗？我希望预留充分的时间。',
+        e: '¿Podemos revisar juntos el calendario de entrega?',
+        f: 'Pouvons-nous revoir ensemble le calendrier de livraison ?',
+        h: 'क्या हम समय के बारे में बात कर सकते हैं?',
+        i: 'Possiamo rivedere insieme il programma di consegna?',
+        j: '納品の日程を一緒に確認できますか。',
+        p: 'Podemos revisar juntos o cronograma de entrega?',
+      };
       await post('/generations', {
-        text: material.text,
-        title: material.title,
-        voice: target.dataset.sample,
-        language: 'a',
+        text: samples[voice[0]],
+        title: 'Voice preview',
+        voice,
+        language: voice[0],
         speed: 0.95,
         pause: 0.3,
         kind: 'preview',
-        material_id: material.id,
       });
       toast('Voice preview queued.');
       await refreshJobs();
@@ -523,6 +587,7 @@ document.addEventListener(
         text: job.text,
         title: job.title,
         voice: job.voice,
+        voice_b: job.voice_b || null,
         language: job.voice[0],
         speed: job.speed,
         pause: job.pause,
@@ -539,10 +604,20 @@ document.addEventListener(
     }
   })
 );
-$('#search').addEventListener('input', renderLibrary);
+$('#search').addEventListener('input', () => {
+  state.libraryLimit = 24;
+  renderLibrary();
+});
+$('#library-load-more').onclick = () => {
+  state.libraryLimit = (state.libraryLimit || 24) + 24;
+  renderLibrary();
+};
+['library-language', 'library-kind', 'library-scope', 'library-sort'].forEach(
+  (id) => ($(`#${id}`).onchange = renderLibrary)
+);
+['voice-language', 'voice-gender'].forEach((id) => ($(`#${id}`).onchange = renderVoices));
 $('#new-material').onclick = newMaterial;
-$('#hero-start').onclick = () =>
-  state.materials.length ? openMaterial(state.materials[0].id) : newMaterial();
+$('#hero-start').onclick = () => showView('authoring');
 $('#browse-voices').onclick = () => showView('voices');
 $('#all-voices').onclick = () => {
   showView('studio');
@@ -713,18 +788,9 @@ $('#hide-text').onclick = () => {
   $('#focus-stage').classList.toggle('text-hidden', hidden);
   $('#hide-text').textContent = hidden ? 'Show text' : 'Hide text';
 };
-setInterval(() => {
-  const key = `llh-listening-${new Date().toLocaleDateString('en-CA')}`;
-  try {
-    let seconds = Number(localStorage.getItem(key) || 0);
-    if (!audio.paused && !audio.ended && !audio.seeking && audio.readyState >= 3)
-      localStorage.setItem(key, String(++seconds));
-    $('#practice-time').textContent = `${Math.floor(seconds / 60)} min listened today`;
-  } catch {}
-}, 1000);
 async function init() {
   icons();
-  $('.decorative-wave').innerHTML = wave(2, 40);
+  await authenticate({ api, post, state, toast, showView, openMaterial, refreshViews });
   const [catalog, materials, jobs, health] = await Promise.all([
     api('/voices'),
     api('/materials'),
@@ -739,6 +805,7 @@ async function init() {
     .map(([id, name]) => `<option value="${id}">${name}</option>`)
     .join('');
   updateVoiceSelect('am_fenrir');
+  await initWorkspace();
   try {
     const preferences = JSON.parse(localStorage.getItem('sayloop-preferences') || '{}');
     collapseSidebar(Boolean(preferences.collapsed));
@@ -746,7 +813,7 @@ async function init() {
     transport.setMode(preferences.mode || 'continuous');
   } catch {}
   try {
-    const draft = JSON.parse(localStorage.getItem('llh-draft') || 'null');
+    const draft = JSON.parse(localStorage.getItem(`llh-draft-${state.user.id}`) || 'null');
     if (draft) {
       $('#material-title').value = draft.title;
       $('#editor').value = draft.text;

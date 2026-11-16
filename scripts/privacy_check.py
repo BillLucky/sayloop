@@ -29,11 +29,13 @@ BLOCKED = {
     ".jpeg",
     ".png",
     ".sqlite",
+    ".sqlite3",
     ".db",
 }
 PATTERNS = [
     re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
     re.compile(r"\b(?:ghp_|gho_|hf_)[A-Za-z0-9]{25,}\b"),
+    re.compile(r"\bsk-[A-Za-z0-9_-]{24,}\b"),
     re.compile(r"/Users/[A-Za-z0-9._-]+/"),
     re.compile(r"\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.ts\.net\b", re.IGNORECASE),
 ]
@@ -43,6 +45,7 @@ def artifact(name):
     path = Path(name)
     return (
         path.parts[0] in {"data", ".venv", "node_modules", ".claude"}
+        or path.name in {"OWNER_LOGIN.txt", "llm.json", "accounts.sqlite3-journal"}
         or (path.name.startswith(".env") and path.name != ".env.example")
         or (path.suffix.lower() in BLOCKED and name not in REVIEWED_IMAGES)
     )

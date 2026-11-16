@@ -13,9 +13,12 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from .config import DATA, LANGUAGES, ROOT, VOICE_NAMES, VOICE_NOTES, ensure_dirs
+from . import accounts, compositions
+from .compositions import Turn
+from .config import DATA, LANGUAGES, ROOT, VERSION, VOICE_NAMES, VOICE_NOTES, ensure_dirs
 from .engine import engine
 from .jobs import recover_jobs, submit
+from .learning import router
 from .network import settings
 from .storage import get_job, get_material, list_jobs, list_materials, save_material
 from .text import clean_text
@@ -24,11 +27,13 @@ from .text import clean_text
 @asynccontextmanager
 async def lifespan(app):
     ensure_dirs()
+    accounts.initialize()
+    compositions.recover()
     recover_jobs()
     yield
 
 
-app = FastAPI(title="Sayloop", version="0.3.0", lifespan=lifespan)
+app = FastAPI(title="Sayloop", version=VERSION, lifespan=lifespan)
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings()["allowed_hosts"])
 
 
@@ -39,7 +44,23 @@ async def local_only(request: Request, call_next):
         parsed = urlparse(origin)
         if parsed.netloc != request.headers.get("host"):
             return JSONResponse({"detail": "Cross-origin writes are not allowed."}, status_code=403)
-    response = await call_next(request)
+    request.state.user = accounts.current_user(request.cookies.get(accounts.COOKIE))
+    public = {
+        "/api/health",
+        "/api/voices",
+        "/api/auth/me",
+        "/api/auth/login",
+        "/api/auth/register",
+        "/api/auth/logout",
+    }
+    if (
+        request.url.path.startswith("/api/")
+        and request.url.path not in public
+        and not request.state.user
+    ):
+        response = JSONResponse({"detail": "请先登录。"}, status_code=401)
+    else:
+        response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"] = "no-referrer"
     response.headers["Content-Security-Policy"] = (
@@ -56,6 +77,11 @@ class MaterialInput(BaseModel):
     title: str = Field(default="Untitled material", max_length=160)
     text: str = Field(min_length=1, max_length=100_000)
     language: str = "a"
+    tags: list[str] = Field(default_factory=list, max_length=12)
+    turns: list[Turn] = Field(default_factory=list, max_length=100)
+    role_a: str = Field(default="A", max_length=80)
+    role_b: str = Field(default="B", max_length=80)
+    composition_id: str | None = None
 
     @field_validator("language")
     @classmethod
@@ -74,12 +100,14 @@ class GenerationInput(BaseModel):
     pause: float = Field(default=0.3, ge=0, le=2)
     kind: str = Field(default="full", pattern="^(full|preview)$")
     material_id: str | None = None
+    voice_b: str | None = None
 
 
 @app.get("/api/health")
 def health():
     return dict(
         status="ok",
+        version=VERSION,
         model="Kokoro-82M",
         loaded=engine.model is not None,
         device=engine.device,
@@ -105,20 +133,51 @@ def voices():
 
 
 @app.get("/api/materials")
-def materials():
-    return list_materials()
+def materials(request: Request, q: str = "", language: str = "", tag: str = ""):
+    return [
+        dict(item, owned=accounts.owner_id(item) == request.state.user["id"])
+        for item in list_materials()
+        if accounts.can_read(item, request.state.user)
+        and (
+            not q
+            or q.casefold()
+            in (
+                item["title"] + " " + item["text"] + " " + " ".join(item.get("tags", []))
+            ).casefold()
+        )
+        and (not language or item["language"] == language)
+        and (not tag or tag in item.get("tags", []))
+    ]
 
 
 @app.post("/api/materials", status_code=201)
-def create_material(item: MaterialInput):
+def create_material(item: MaterialInput, request: Request):
     try:
-        return save_material(item.title, item.text, item.language)
+        if item.composition_id:
+            from .learning import get_composition
+
+            get_composition(item.composition_id, request)
+        text = "\n\n".join(turn.text for turn in item.turns) if item.turns else item.text
+        return save_material(
+            item.title,
+            text,
+            item.language,
+            owner_id=request.state.user["id"],
+            visibility="private",
+            tags=[tag[:40] for tag in item.tags],
+            turns=[turn.model_dump() for turn in item.turns],
+            role_a=item.role_a,
+            role_b=item.role_b,
+            composition_id=item.composition_id,
+        )
     except ValueError as error:
         raise HTTPException(422, str(error)) from error
 
 
 @app.post("/api/materials/upload", status_code=201)
-async def upload(file: Annotated[UploadFile, File()], language: Annotated[str, Form()] = "a"):
+async def upload(
+    request: Request, file: Annotated[UploadFile, File()], language: Annotated[str, Form()] = "a"
+):
     if language not in LANGUAGES:
         raise HTTPException(422, "Choose a supported language.")
     name = Path(file.filename or "Untitled.txt").name
@@ -131,28 +190,50 @@ async def upload(file: Annotated[UploadFile, File()], language: Annotated[str, F
         text = raw.decode("utf-8-sig")
         if len(text) > 100_000:
             raise ValueError("Maximum: 100,000 characters per material.")
-        return save_material(Path(name).stem, text, language, source=name)
+        return save_material(
+            Path(name).stem,
+            text,
+            language,
+            source=name,
+            owner_id=request.state.user["id"],
+            visibility="private",
+        )
     except (UnicodeError, ValueError) as error:
         raise HTTPException(422, f"Cannot import this file: {error}") from error
 
 
 @app.post("/api/generations", status_code=202)
-def generate(item: GenerationInput):
+def generate(item: GenerationInput, request: Request):
     if item.voice not in VOICE_NAMES or item.language != item.voice[0]:
         raise HTTPException(422, "Select a voice matching the text language.")
+    if item.voice_b and (item.voice_b not in VOICE_NAMES or item.voice_b[0] != item.language):
+        raise HTTPException(422, "角色 B 的声音必须与语料语言一致。")
     text = clean_text(item.text)
     if not text:
         raise HTTPException(422, "Add some speakable text first.")
+    material = None
     if item.material_id:
         try:
             material = get_material(item.material_id)
+            accounts.require_read(material, request.state.user)
         except (ValueError, FileNotFoundError):
             raise HTTPException(404, "Material not found.") from None
         if material["text"] != text:
             raise HTTPException(409, "Save the edited text as a new material version first.")
     try:
         return submit(
-            text, item.title, item.voice, item.speed, item.pause, item.kind, item.material_id
+            text,
+            item.title,
+            item.voice,
+            item.speed,
+            item.pause,
+            item.kind,
+            item.material_id,
+            owner_id=request.state.user["id"],
+            turns=material.get("turns", []) if material else [],
+            voice_b=item.voice_b or item.voice,
+            role_a=material.get("role_a", "A") if material else "A",
+            role_b=material.get("role_b", "B") if material else "B",
         )
     except ValueError as error:
         raise HTTPException(429, str(error)) from error
@@ -160,7 +241,8 @@ def generate(item: GenerationInput):
 
 def audio_version(path):
     stat = path.stat()
-    return f"{stat.st_mtime_ns:x}-{stat.st_size:x}"
+    # Do not reuse pre-account immutable HTTP-cache entries after the privacy migration.
+    return f"account-v1-{stat.st_mtime_ns:x}-{stat.st_size:x}"
 
 
 def audio_versions(job):
@@ -174,17 +256,18 @@ def audio_versions(job):
 
 
 @app.get("/api/generations")
-def generations():
+def generations(request: Request):
     return [
-        {k: v for k, v in audio_versions(job).items() if k not in ("text", "segments")}
+        {k: v for k, v in audio_versions(job).items() if k not in ("text", "segments", "turns")}
         for job in list_jobs()
+        if accounts.can_read(job, request.state.user)
     ]
 
 
 @app.get("/api/generations/{identifier}")
-def generation(identifier: str):
+def generation(identifier: str, request: Request):
     try:
-        return audio_versions(get_job(identifier))
+        return audio_versions(accounts.require_read(get_job(identifier), request.state.user))
     except (ValueError, FileNotFoundError):
         raise HTTPException(404, "Generation not found.") from None
 
@@ -194,7 +277,7 @@ def audio(filename: str, request: Request, download: bool = False, v: str = ""):
     match = re.fullmatch(r"([a-f0-9]{32})\.(mp3|wav)", filename)
     if not match:
         raise HTTPException(404, "Audio not found.")
-    job = generation(match[1])
+    job = generation(match[1], request)
     path = DATA / "audio" / filename
     if job["status"] != "completed" or not path.is_file():
         raise HTTPException(404, "Audio is not ready.")
@@ -202,8 +285,10 @@ def audio(filename: str, request: Request, download: bool = False, v: str = ""):
     if v and v != version:
         raise HTTPException(410, "Recording changed. Refresh the library.")
     headers = {
-        "Cache-Control": "private, max-age=31536000, immutable" if v else "private, no-cache",
+        # Revalidate authorization before browser HTTP-cache reuse, including account switches.
+        "Cache-Control": "private, no-cache",
         "ETag": f'"{version}"',
+        "Vary": "Cookie",
     }
     if request.headers.get("if-none-match") in (headers["ETag"], "*"):
         return Response(status_code=304, headers=headers)
@@ -217,10 +302,16 @@ def audio(filename: str, request: Request, download: bool = False, v: str = ""):
 
 
 @app.get("/api/export")
-def export(kind: str = "full"):
+def export(request: Request, kind: str = "full"):
     if kind not in ("full", "preview"):
         raise HTTPException(422, "Unknown export type")
-    selected = [j for j in list_jobs() if j["status"] == "completed" and j["kind"] == kind]
+    selected = [
+        j
+        for j in list_jobs()
+        if j["status"] == "completed"
+        and j["kind"] == kind
+        and accounts.can_read(j, request.state.user)
+    ]
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_STORED) as archive:
         for i, job in enumerate(selected, 1):
@@ -238,4 +329,5 @@ def export(kind: str = "full"):
     )
 
 
+app.include_router(router)
 app.mount("/", StaticFiles(directory=ROOT / "web", html=True), name="web")

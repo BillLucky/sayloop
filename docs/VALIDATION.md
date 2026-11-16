@@ -1,3 +1,17 @@
+# Verification record
+
+## 2026-11-16 · v0.4 learning workspace
+
+- Native Apple Silicon / Python 3.11: **66 pytest tests**, **7 Node playback tests**, and **22 Chrome desktop/mobile browser tests** passed. Ruff, Python compilation, browser-module syntax, Prettier, and source whitespace checks passed. A Starlette/httpx test-client deprecation warning is non-blocking; runtime dependencies were not upgraded in this iteration.
+- Authorization tests cover private legacy ownership, invitations, session revocation, cross-user material/audio/ETag/export denial, sharing/revocation, private derived recordings, feedback isolation, and account-scoped learning records. Study tests cover wall-time caps, idempotence, and duplicate tabs. Authoring tests cover fallback, structured output, queue limits, revisions, interruption, and retained partial batches.
+- Real configured primary model: Chinese polishing (~4 seconds), three New York-style expressions (~10 seconds), two Spanish business expressions (~18 seconds), thirty business dialogues, and two visa-practice dialogues succeeded. After adding per-batch communication goals, the final thirty-dialogue acceptance produced **30 distinct dialogue texts and 30 distinct titles** in about 373 seconds.
+- Actual unavailable-primary test fell back to the installed local Ollama model and returned two expressions in about 14 seconds. Both primary and local paths used real inference, separate from fixture tests.
+- Real male/female dialogue synthesis produced a **26.975-second** recording with **11 sentence segments**, role labels, and translations, using Fenrir and Heart. Timing was monotonic; MP3 range download returned 206 with the requested bytes. Local model weights were reused offline for speech.
+- A real mobile-sized Chrome session saved the complete recording, reloaded, played and sought from a blob with **zero audio requests**, no JavaScript errors, and no horizontal overflow. The server credited 11 seconds of actual playback. Account-scoping and authorized migration of older device caches also passed browser regression tests.
+- Layout screenshots were inspected at 1440, 1024, 820, 768, 390, and 320 pixels. Authenticated authoring, turn editing, voice assignment, practice, immersive entry/exit, progress, and logout were exercised. Synthetic screenshots and operational evidence remain in ignored `data/validation/`; none are published with this source change.
+- Formal design-skill gate status and contextual exceptions are recorded in [the design review](DESIGN_REVIEW.md). Application/browser acceptance is separate from that marketing-page checker.
+- This round does **not** certify physical iOS/Android devices, Safari, OS lock-screen/background playback, a full computer cold boot, or a newly rebuilt Docker runtime. Existing login-service configuration is retained and runtime restart is verified separately in private deployment evidence.
+
 # Validation record
 
 Date: 2026-10-05. Release: 0.2.0 (earlier browser/audio acceptance retained where noted). Environment: native Apple Silicon, Python 3.11, CPU inference, FFmpeg, Chrome. Private recordings and screenshots remain in ignored local data directories.

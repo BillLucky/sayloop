@@ -18,4 +18,17 @@ def client(tmp_path, monkeypatch):
     for module in [config, storage, main, jobs]:
         monkeypatch.setattr(module, "DATA", tmp_path)
     with TestClient(app) as client:
+        from app import accounts
+
+        with accounts.database() as db:
+            db.execute(
+                "UPDATE users SET password=? WHERE username='owner'",
+                (accounts.password_hash("test-password-only"),),
+            )
+        assert (
+            client.post(
+                "/api/auth/login", json={"username": "owner", "password": "test-password-only"}
+            ).status_code
+            == 200
+        )
         yield client

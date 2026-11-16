@@ -6,7 +6,7 @@ Use Python 3.11, uv, FFmpeg, and an isolated `.venv`. Run `./scripts/setup.sh` o
 
 `start.command` launches the background server and opens its page on macOS. For development use `.venv/bin/python scripts/serve.py`; Ctrl-C stops it. For background operation use `--background` and stop with `scripts/stop.py`, which checks process ownership and refuses to interrupt an active generation queue. If the process remains alive after five seconds, the command exits unsuccessfully and reports that it is still running. Inspect the log and retry later; it never escalates to a forced kill.
 
-The server is not registered as a login service. After a restart, run `start.command` again. Logs are in `data/logs/server.log`. Check readiness with `curl --noproxy '*' http://127.0.0.1:8765/api/health` if a local proxy is configured. Health indicates API availability; `loaded` becomes true after the first inference.
+A fresh installation is not registered as a login service automatically. An existing managed installation should retain and restart its configured OS login service; do not launch a second background process. Logs are in `data/logs/server.log`. Check readiness with `curl --noproxy '*' http://127.0.0.1:8765/api/health` if a local proxy is configured. Health indicates API availability; `loaded` becomes true after the first inference.
 
 ## Configuration
 
@@ -23,9 +23,9 @@ Environment variables are read from the process; `.env` is **not** loaded automa
 
 ## Data ownership and backup
 
-`data/originals/` keeps source copies; `materials/` holds text snapshots; `jobs/` holds settings and timing; `audio/` holds MP3/WAV; `exports/` contains friendly filenames and ZIPs. `backups/` contains pre-upgrade originals. This entire tree is ignored by Git and excluded from Docker build context and source archives.
+`data/accounts.sqlite3` stores accounts, sessions, feedback and progress; `compositions/` stores authoring versions; `data/originals/` keeps source copies; `materials/` holds text snapshots; `jobs/` holds settings and timing; `audio/` holds MP3/WAV; `exports/` contains friendly filenames and ZIPs. `backups/` contains pre-upgrade originals. This entire tree is ignored by Git and excluded from Docker build context and source archives.
 
-Stop an idle server, copy the complete data directory to a private backup destination, and keep that backup separate from the source repository. Do not back up only `audio/`: practice timing lives in `jobs/`. Browser drafts and preferences are browser-local and do not migrate with the data directory; save important drafts to the library first.
+Wait for both authoring and speech queues to be idle, stop the server, then copy the complete data directory to a private backup destination, and keep that backup separate from the source repository. Do not back up only `audio/`: practice timing lives in `jobs/`. Browser drafts and preferences are browser-local and do not migrate with the data directory; save important drafts to the library first.
 
 To move to another machine: install the source and dependencies; copy your private data directory; copy or download the pinned model cache; point `LLH_DATA_DIR` and optionally `KOKORO_MODEL_DIR` at those locations; start one server; play a recording and generate a short preview. English and Japanese linguistic resources live in the Python environment and are prepared by setup, separately from the model cache.
 
@@ -44,7 +44,7 @@ To move to another machine: install the source and dependencies; copy your priva
 
 See [Docker installation](DOCKER.md) for first-run model setup, offline mode, backup/restore commands, and a repeatable synthesis/restart test. The [validation record](VALIDATION.md) lists the platforms actually exercised. Reference: [FastAPI container deployment](https://fastapi.tiangolo.com/deployment/docker/).
 
-For a personal remote server, keep the listener private and use an SSH tunnel (`ssh -L 8765:127.0.0.1:8765 your-host`) to reach it locally. Public hosting and multi-user service require a separate security design; do not simply widen the bind address or trusted hosts.
+For a personal remote server, keep the listener private and use an SSH tunnel (`ssh -L 8765:127.0.0.1:8765 your-host`) to reach it locally. Public hosting requires a separate deployment security review; do not simply widen the bind address or trusted hosts.
 
 ## Source releases
 
@@ -59,3 +59,7 @@ Audio packs are personal exports, never GitHub release assets. No automated depl
 ## Private phone access
 
 Use `scripts/network.py --tailscale` with the project Python to configure private HTTPS, or `--lan YOUR_COMPUTER_LAN_IPV4` to opt into trusted LAN HTTP. Restart only after generation finishes. Settings remain in ignored `data/network.json`; startup prints configured access URLs locally. Follow [remote access operations](REMOTE_ACCESS.md) for setup, rollback, Docker and browser cache behavior.
+
+## Accounts and authoring configuration
+
+See [the workspace guide](LEARNING_WORKSPACE.md) for first owner login, invitation codes, password recovery, model configuration, queue behavior, and backup requirements. Deployment smoke checks now require `--password-file` pointing to the private owner-login file or a plain password file. Never pass passwords on the command line or publish that file.

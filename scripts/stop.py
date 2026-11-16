@@ -9,10 +9,15 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app.config import DATA, ROOT
-from app.storage import list_jobs
+from app.storage import list_jobs, read_json
 
 if any(j["status"] in ("queued", "running") for j in list_jobs()):
     raise SystemExit("Generation is active. Wait for the queue to finish before stopping.")
+if any(
+    read_json(path)["status"] in ("queued", "running")
+    for path in (DATA / "compositions").glob("*.json")
+):
+    raise SystemExit("Authoring is active. Wait for the queue to finish before stopping.")
 pidfile = DATA / "server.pid"
 if not pidfile.exists():
     raise SystemExit("No background server PID is recorded.")

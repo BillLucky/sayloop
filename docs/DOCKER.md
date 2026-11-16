@@ -72,3 +72,7 @@ See [validation](VALIDATION.md) for the platforms actually exercised. Container 
 ## Private phone access
 
 Keep host port publication on loopback. Set the exact `SAYLOOP_ALLOWED_HOSTS` hostname in ignored `.env`, recreate Compose, then run Tailscale Serve on the host. See [phone access](REMOTE_ACCESS.md#docker). Real device and network configuration must not enter the image or public repository.
+
+## v0.4 local accounts
+
+On first startup, the owner login is written to `/app/data/OWNER_LOGIN.txt` in the private data volume. Read it locally with `docker compose exec -T sayloop cat /app/data/OWNER_LOGIN.txt`, then sign in and change the password. Do not copy it into an issue or build log. Back up and restore the complete data volume, including `accounts.sqlite3` and authoring history. Model-provider configuration belongs in private `/app/data/llm.json`; local Ollama inside a container needs a reachable explicitly configured host endpoint. A new Docker runtime build was not acceptance-tested for v0.4.

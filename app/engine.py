@@ -3,6 +3,7 @@ import subprocess
 import threading
 import time
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import numpy as np
 import soundfile as sf
@@ -10,6 +11,31 @@ import soundfile as sf
 from .alignment import sentence_segments
 from .config import REPO_ID, SAMPLE_RATE, VOICE_NAMES, model_path
 from .text import chunks, clean_text
+
+
+def write_audio(audio, output):
+    output.parent.mkdir(parents=True, exist_ok=True)
+    wav = output.with_suffix(".wav")
+    sf.write(wav, audio, SAMPLE_RATE, subtype="PCM_16")
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-i",
+            str(wav),
+            "-codec:a",
+            "libmp3lame",
+            "-b:a",
+            "128k",
+            str(output),
+        ],
+        check=True,
+        capture_output=True,
+        timeout=120,
+    )
 
 
 class SpeechEngine:
@@ -95,28 +121,7 @@ class SpeechEngine:
             peak = float(np.max(np.abs(audio)))
             if peak > 0.98:
                 audio *= 0.98 / peak
-            output.parent.mkdir(parents=True, exist_ok=True)
-            wav = output.with_suffix(".wav")
-            sf.write(wav, audio, SAMPLE_RATE, subtype="PCM_16")
-            subprocess.run(
-                [
-                    "ffmpeg",
-                    "-hide_banner",
-                    "-loglevel",
-                    "error",
-                    "-y",
-                    "-i",
-                    str(wav),
-                    "-codec:a",
-                    "libmp3lame",
-                    "-b:a",
-                    "128k",
-                    str(output),
-                ],
-                check=True,
-                capture_output=True,
-                timeout=120,
-            )
+            write_audio(audio, output)
             return dict(
                 duration=round(len(audio) / SAMPLE_RATE, 3),
                 segments=segments,
@@ -126,6 +131,60 @@ class SpeechEngine:
                 peak=round(peak, 4),
                 timing_version=2,
             )
+
+    def generate_dialogue(self, job, output, progress):
+        """Synthesize each turn with its assigned voice and offset sentence timings."""
+        started = time.monotonic()
+        parts, segments = [], []
+        samples = 0
+        preview = job["kind"] == "preview"
+        with TemporaryDirectory(prefix="sayloop-dialogue-") as directory:
+            for index, turn in enumerate(job["turns"]):
+                voice = job["voice"] if turn["speaker"] == "A" else job["voice_b"]
+                path = Path(directory) / f"{index}.mp3"
+                result = self.generate(turn["text"], voice, job["speed"], 0, path, preview=preview)
+                audio, _ = sf.read(path.with_suffix(".wav"), dtype="float32")
+                if preview:
+                    audio = audio[: max(0, 25 * SAMPLE_RATE - samples)]
+                offset = samples / SAMPLE_RATE
+                end = offset + len(audio) / SAMPLE_RATE
+                for segment in result["segments"]:
+                    if offset + segment["start"] >= end:
+                        break
+                    segments.append(
+                        dict(
+                            segment,
+                            start=round(offset + segment["start"], 3),
+                            end=round(min(end, offset + segment["end"]), 3),
+                            speaker=turn["speaker"],
+                            voice=voice,
+                            role=job.get(
+                                "role_a" if turn["speaker"] == "A" else "role_b", turn["speaker"]
+                            ),
+                            translation=turn.get("translation", ""),
+                        )
+                    )
+                parts.append(audio)
+                samples += len(audio)
+                if preview and samples >= 25 * SAMPLE_RATE:
+                    break
+                if index < len(job["turns"]) - 1:
+                    silence = np.zeros(int(job["pause"] * SAMPLE_RATE), dtype=np.float32)
+                    parts.append(silence)
+                    samples += len(silence)
+                progress(min(95, round(95 * (index + 1) / len(job["turns"]))))
+        combined = np.concatenate(parts)
+        if preview:
+            combined = combined[: 25 * SAMPLE_RATE]
+        write_audio(combined, output)
+        return dict(
+            duration=round(len(combined) / SAMPLE_RATE, 3),
+            segments=segments,
+            sample_rate=SAMPLE_RATE,
+            elapsed=round(time.monotonic() - started, 2),
+            device=self.device,
+            timing_version=3,
+        )
 
 
 engine = SpeechEngine()

@@ -84,6 +84,10 @@ test.beforeEach(async ({ page }) => {
       });
     }
     const responses = {
+      '/api/auth/me': { user: { id: 'fixture-user', display_name: 'Synthetic learner', goal: 600, admin: true, leaderboard: false } },
+      '/api/compositions': [],
+      '/api/study/sessions': { id: 'a'.repeat(32) },
+      '/api/study/events': { ok: true },
       '/api/voices': {
         languages: { a: 'American English' },
         voices: [
@@ -225,4 +229,33 @@ test('unavailable device storage leaves online playback usable', async ({ page }
   await expect(page.locator('#device-status')).toContainText('storage unavailable');
   await page.locator('.passage').first().click();
   await expect.poll(() => page.locator('#audio').evaluate(el => el.currentTime)).toBeGreaterThan(0.1);
+});
+
+test('device audio is account-scoped and legacy versions migrate without downloads', async ({ page }) => {
+  await page.locator('#save-device').click();
+  await expect(page.locator('#save-device')).toHaveText('Saved on this device ✓');
+  const result = await page.evaluate(async () => {
+    const cache = await import('/audio-cache.js');
+    cache.setAudioUser('another-learner');
+    const hiddenFromOtherAccount = !(await cache.cachedAudio('/api/audio/synthetic.wav'));
+    cache.setAudioUser('fixture-user');
+    const retainedForOwner = !!(await cache.cachedAudio('/api/audio/synthetic.wav'));
+    const legacy = '/api/audio/synthetic.mp3?v=old-version';
+    const current = '/api/audio/synthetic.mp3?v=account-v1-old-version';
+    await new Promise((resolve, reject) => {
+      const open = indexedDB.open('sayloop-device-audio', 1);
+      open.onsuccess = () => {
+        const db = open.result, tx = db.transaction('audio', 'readwrite');
+        tx.objectStore('audio').put(new Blob(['synthetic audio'], { type: 'audio/mpeg' }), legacy);
+        tx.oncomplete = () => { db.close(); resolve(); };
+        tx.onerror = () => reject(tx.error);
+      };
+    });
+    const adopted = await cache.adoptLegacyAudio(current);
+    const moved = !!(await cache.cachedAudio(current));
+    await cache.clearUserAudio();
+    const cleared = !(await cache.cachedAudio(current));
+    return { hiddenFromOtherAccount, retainedForOwner, adopted: adopted.size > 0, moved, cleared };
+  });
+  expect(result).toEqual({ hiddenFromOtherAccount: true, retainedForOwner: true, adopted: true, moved: true, cleared: true });
 });

@@ -5,7 +5,18 @@ import pytest
 from scripts.privacy_check import inspect
 
 
-@pytest.mark.parametrize("name", ["data/story.md", ".env.local", "voice.MP3", "bundle.tar.gz"])
+@pytest.mark.parametrize(
+    "name",
+    [
+        "data/story.md",
+        ".env.local",
+        "voice.MP3",
+        "bundle.tar.gz",
+        "accounts.sqlite3",
+        "OWNER_LOGIN.txt",
+        "llm.json",
+    ],
+)
 def test_private_artifacts_rejected(name):
     assert inspect(name, "synthetic") == "private/generated artifact"
 

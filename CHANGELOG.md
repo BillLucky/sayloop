@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0 — 2026-11-16
+
+- Add Chinese polishing, language/person/style variants, iterative authoring history, and batched scenario dialogues with a primary-model/local-Ollama fallback chain.
+- Add local accounts, expiring one-use invitations, private material ownership, explicit sharing/revocation, and authorization on audio, exports, feedback, and study records.
+- Add role-specific male/female dialogue synthesis with sentence timing and translations; expose all voice filters.
+- Add tags, favorites, archiving, search, filters, incremental rendering, listening goals, streaks, milestones, and an opt-in seven-day leaderboard.
+- Scope device audio and drafts to accounts; revalidate HTTP cache authorization and clear device copies on logout.
+- Persist content/voice feedback, harden private artifact scanning, and update account-aware smoke checks and operational documentation.
+
 ## Unreleased
 
 - Fix `Invalid host header` for explicitly configured direct Tailscale IPv4 access. Add `--tailscale-ip` / `--no-tailscale-ip` without changing system proxy or DNS settings.

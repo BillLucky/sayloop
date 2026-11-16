@@ -2,7 +2,7 @@
 
 ## Runtime
 
-Sayloop is a single-process FastAPI application. Uvicorn serves both the API and browser-native ES modules. There is no frontend build step, cloud inference, analytics, or external font dependency. Python 3.11 dependencies are pinned in `requirements.lock`; frontend formatting is pinned in `package-lock.json`.
+Sayloop is a single-process FastAPI application. Uvicorn serves both the API and browser-native ES modules. There is no frontend build step or external analytics/font dependency. Authoring uses a configured primary/local LLM chain; Kokoro synthesis stays local. Python 3.11 dependencies are pinned in `requirements.lock`; frontend formatting is pinned in `package-lock.json`.
 
 ```mermaid
 flowchart LR
@@ -51,10 +51,14 @@ A foreground animation frame checks boundaries for precise interaction; `timeupd
 
 ## Extension points
 
-Another TTS engine should implement the current audio/segment result contract. Network multi-user deployment requires authentication, authorization, isolated data ownership, upload limits, and a durable job queue before exposing this application beyond a trusted host. Translation, microphone recording, pronunciation scoring, and cloud accounts are outside the current release.
+Another TTS engine should implement the current audio/segment result contract. Local accounts, ownership checks, authoring, dialogue synthesis, and listening records are described in [the learning workspace design](LEARNING_WORKSPACE.md). Public hosting, microphone recording, pronunciation scoring, and cloud identity remain outside this release.
 
 ## Network boundary and device cache
 
-`app/network.py` reads ignored native settings and optional exact-host environment configuration. Default binding stays loopback; optional LAN binding requires a private IPv4 address. Tailscale Serve terminates private HTTPS. Metadata APIs use `no-store`; static source revalidates. Audio URLs use file modification nanoseconds and size as their revision, with private immutable caching and ETag/Range support. Stale revisions return 410.
+`app/network.py` reads ignored native settings and optional exact-host environment configuration. Default binding stays loopback; optional LAN binding requires a private IPv4 address. Tailscale Serve terminates private HTTPS. Metadata APIs use `no-store`; static source revalidates. Audio URLs use file modification nanoseconds and size as their revision, with private authentication revalidation and ETag/Range support. Stale revisions return 410.
 
-`web/audio-cache.js` stores explicitly saved complete audio blobs in IndexedDB, keyed by versioned URL. The player reuses blob URLs on later loads and revokes replaced object URLs. Cache failures do not block online playback. No service worker or offline metadata store is installed. Cache changes never mutate server recordings.
+`web/audio-cache.js` stores explicitly saved complete audio blobs in IndexedDB, keyed by account ID and versioned URL; logout clears the account’s saved copies. The player reuses blob URLs on later loads and revokes replaced object URLs. Cache failures do not block online playback. No service worker or offline metadata store is installed. Cache changes never mutate server recordings.
+
+## Learning workspace modules
+
+`app/accounts.py` manages local credentials, sessions, ownership resolution, study events, and statistics in SQLite. `app/learning.py` exposes authenticated account, authoring, metadata, feedback, and study routes. `app/compositions.py` persists immutable authoring jobs and runs a separate bounded single-worker model queue. `web/workspace.js` owns the authoring and progress UI; `web/workspace.css` extends the existing visual system. See [v0.4 design and boundaries](LEARNING_WORKSPACE.md).

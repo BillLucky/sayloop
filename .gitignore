@@ -9,5 +9,6 @@ data/
 node_modules/
 test-results/
 playwright-report/
+.taste-skill/
 .env.*
 !.env.example

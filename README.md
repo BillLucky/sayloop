@@ -4,10 +4,13 @@
 
 **Your words, out loud.** A personal speech studio and language practice room that runs on your own computer.
 
-Write something you want to say, turn it into speech, and practice one sentence at a time. Sayloop uses [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M); no paid speech API or account is required. Sayloop is open source; personal materials and recordings are never included.
+Write something you want to say, turn it into speech, and practice one sentence at a time. Sayloop uses [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M); no paid speech API is required. Sayloop is open source; personal materials and recordings are never included.
 
 ## What you can do
 
+- Polish Chinese ideas, create expression variants, and generate editable scenario dialogues with a configurable primary/local model chain.
+- Sign in to a private library, invite learners, and track listening goals, milestones, and an opt-in leaderboard.
+- Assign male and female voices to dialogue roles, with synchronized role labels and translations.
 - Import UTF-8 `.txt` or `.md` files, or paste text directly.
 - Explore 54 voices across nine language/accent options, including nine American male voices.
 - Preview up to 25 seconds before generating a full recording.
@@ -17,7 +20,7 @@ Write something you want to say, turn it into speech, and practice one sentence 
 - Enter an immersive listening room with large text, muted surrounding sentences, and keyboard controls.
 - Keep your work on disk. Drafts and interface preferences stay in browser storage.
 
-Speech generation does **not** translate text. Select the language already used in your material. Voice quality varies; Kokoro does not expose an emotion-intensity slider. English sentence timing comes from the model's token durations; other languages currently use synthesis passages.
+The **Authoring** workspace creates translations and expression variants. Speech generation reads the saved target-language material; it does **not** translate text itself. Select the language already used in your material. Voice quality varies; Kokoro does not expose an emotion-intensity slider. English sentence timing comes from the model's token durations; other languages currently use synthesis passages.
 
 ## A look inside
 
@@ -54,7 +57,7 @@ cd sayloop
 .venv/bin/python scripts/serve.py
 ```
 
-Open **http://127.0.0.1:8765**. On macOS, double-click `start.command` for background startup and browser launch. The Python environment is isolated to `.venv`; Node is only needed for development checks.
+Open **http://127.0.0.1:8765**. On first startup, use the owner credentials in private `data/OWNER_LOGIN.txt`; then change the password in Learning progress. Invite other learners with one-use codes. See [the learning workspace guide](docs/LEARNING_WORKSPACE.md). On macOS, double-click `start.command` for background startup and browser launch. The Python environment is isolated to `.venv`; Node is only needed for development checks.
 
 Setup reuses the Hugging Face cache before downloading weights. First-time setup also installs the English language model and Japanese dictionary (the dictionary download is about 526 MB). After setup, all nine language options were exercised successfully with `HF_HUB_OFFLINE=1`.
 
@@ -116,7 +119,7 @@ python3 scripts/privacy_check.py --history
 - [Verification record](docs/VALIDATION.md)
 - [Contributing](CONTRIBUTING.md), [privacy boundaries](SECURITY.md), [changelog](CHANGELOG.md)
 
-Native and Docker installation instructions are provided. See the validation record for the exact tested platforms. The application is single-user and loopback-only by default, with no authentication layer.
+Native and Docker installation instructions are provided. See the validation record for the exact tested platforms. The application uses local accounts and remains loopback-only by default. Private network access must be configured explicitly; keep one server worker.
 
 ## Credits and license
 

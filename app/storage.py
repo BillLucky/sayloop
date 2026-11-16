@@ -46,7 +46,7 @@ def list_materials():
     )
 
 
-def save_material(title, text, language="a", source="Text editor"):
+def save_material(title, text, language="a", source="Text editor", **metadata):
     ensure_dirs()
     text = clean_text(text)
     if not text:
@@ -60,6 +60,7 @@ def save_material(title, text, language="a", source="Text editor"):
         created_at=now(),
         words=len(text.split()),
         characters=len(text),
+        **metadata,
     )
     write_json(DATA / "materials" / f"{item['id']}.json", item)
     return item

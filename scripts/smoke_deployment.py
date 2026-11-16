@@ -3,18 +3,25 @@
 import argparse
 import hashlib
 import json
+import os
+import re
 import time
 import urllib.request
+from http.cookiejar import CookieJar
 from pathlib import Path
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--url", default="http://127.0.0.1:8768")
 parser.add_argument("--receipt", type=Path, required=True)
+parser.add_argument("--username", default="owner")
+parser.add_argument("--password-file", type=Path, default=os.environ.get("SAYLOOP_PASSWORD_FILE"))
 parser.add_argument(
     "--verify", action="store_true", help="Check a receipt after restart or restore"
 )
 args = parser.parse_args()
-opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+opener = urllib.request.build_opener(
+    urllib.request.ProxyHandler({}), urllib.request.HTTPCookieProcessor(CookieJar())
+)
 
 
 def request(path, body=None):
@@ -39,6 +46,14 @@ for attempt in range(30):
         if attempt == 29:
             raise
         time.sleep(1)
+if not args.password_file:
+    parser.error(
+        "Provide --password-file with the private owner-login file or a plain password file."
+    )
+secret = args.password_file.read_text().strip()
+match = re.search(r"密码：(.+)", secret)
+secret = match[1] if match else secret
+api("/api/auth/login", {"username": args.username, "password": secret})
 if args.verify:
     receipt = json.loads(args.receipt.read_text())
     job = api(f"/api/generations/{receipt['id']}")

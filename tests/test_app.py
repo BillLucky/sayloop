@@ -114,7 +114,7 @@ def test_generation_lifecycle_and_download(client, monkeypatch):
     audio = client.get(job["audio_url"] + "&download=true")
     assert audio.status_code == 200
     assert "attachment" in audio.headers["content-disposition"]
-    assert audio.headers["cache-control"] == "private, max-age=31536000, immutable"
+    assert audio.headers["cache-control"] == "private, no-cache"
     assert (
         client.get(job["audio_url"], headers={"If-None-Match": audio.headers["etag"]}).status_code
         == 304
