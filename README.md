@@ -16,7 +16,7 @@ Write something you want to say, turn it into speech, and practice one sentence 
 - Preview up to 25 seconds before generating a full recording.
 - Adjust speaking pace and pauses; download MP3, WAV, or a ZIP of recordings and text.
 - Practice with synchronized sentence highlighting and automatic scrolling.
-- Choose continuous listening, **Listen & speak** (pause after each sentence), or sentence looping.
+- Choose continuous listening, **逐句跟读 (Listen & speak)** (pause after each sentence), or sentence looping.
 - Enter an immersive listening room with large text, muted surrounding sentences, and keyboard controls.
 - Keep your work on disk. Drafts and interface preferences stay in browser storage.
 
@@ -39,9 +39,9 @@ Screenshots use synthetic demonstration text, never personal learning materials.
 ![Sayloop immersive practice](docs/images/practice.jpg)
 
 <details>
-<summary>Mobile-sized practice view</summary>
+<summary>Mobile workspace</summary>
 
-<img src="docs/images/mobile.jpg" width="320" alt="Sayloop at a mobile browser width" />
+<img src="docs/images/mobile.jpg" width="320" alt="Sayloop mobile material library with three navigation tabs" />
 
 Verified in Chrome mobile emulation; physical iOS/Android devices are not yet acceptance-tested.
 </details>
@@ -84,6 +84,10 @@ docker compose up -d --wait
 
 Open the same local URL. The library starts empty; import your own material. Weights download separately into a persistent volume. See [Docker setup, offline use, backup and restore](docs/DOCKER.md). No prebuilt image, personal text, or recordings are published.
 
+## Phone navigation
+
+Phones show three short tabs: **语料** (materials), **创作** (authoring), and **练习** (practice). **更多功能** in the top-right opens studio, voices, progress, and account settings. Secondary card and player actions live under **…**. Menus support Escape and backdrop dismissal; the player can be paused and tucked away when reading.
+
 ## Practice controls
 
 | Action | Control |
@@ -92,9 +96,9 @@ Open the same local URL. The library starts empty; import your own material. Wei
 | Previous / next sentence | `←` / `→` |
 | Replay current sentence | `R` |
 | Enter / leave immersive mode | `F` / `Esc` |
-| Pause at every sentence | **Listen & speak** |
-| Repeat one sentence | **Loop sentence** |
-| Keep the active text visible | **Auto-follow** |
+| Pause at every sentence | **逐句跟读 (Listen & speak)** |
+| Repeat one sentence | **单句循环 (Loop sentence)** |
+| Keep the active text visible | **自动跟随 (Auto-follow)** |
 
 Shortcuts do not intercept typing, input controls, or IME composition. Clicking a sentence seeks to it. At the end of a recording, Space starts again; R repeats the final sentence. Listening time is a convenience counter, not a measurement of speaking practice.
 
@@ -127,4 +131,4 @@ Application code: [Apache-2.0](LICENSE). Kokoro weights and third-party packages
 
 ## Phone access and saving audio
 
-Use private Tailscale HTTPS to practice from your phone at home or on walks. Practice room → **Save on this device** stores complete recordings in that browser and reuses them on later visits. Keep the same website address on Wi-Fi and cellular; library loading still needs the server. Optional trusted LAN access is also available. See [setup, caching, and privacy instructions](docs/REMOTE_ACCESS.md).
+Use private Tailscale HTTPS to practice from your phone at home or on walks. **练习 → 离线音频与反馈 → 保存到此设备** stores complete recordings in that browser and reuses them on later visits. Keep the same website address on Wi-Fi and cellular; library loading still needs the server. Optional trusted LAN access is also available. See [setup, caching, and privacy instructions](docs/REMOTE_ACCESS.md).

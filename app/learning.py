@@ -123,7 +123,7 @@ def get_composition(identifier: str, request: Request):
         raise HTTPException(404, "创作版本不存在。") from None
     if item["owner_id"] != request.state.user["id"]:
         raise HTTPException(404, "创作版本不存在。")
-    return item
+    return {key: value for key, value in item.items() if key != "partial_result"}
 
 
 @router.post("/compositions", status_code=202)

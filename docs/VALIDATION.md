@@ -1,5 +1,15 @@
 # Verification record
 
+## 2026-11-17 · v0.4.1 compact workspace
+
+- **66 Python tests, 7 Node playback tests, and 28 Chrome desktop/mobile browser tests passed.** Ruff, compilation, ES-module syntax, Prettier, and whitespace checks passed. No runtime dependency upgrade was needed.
+- New browser cases cover three short phone tabs, one-line labels, full-width cards at 320/390 pixels, modal focus return, Escape dismissal, contextual actions, a collapsible player, playback speed, modal Space isolation, fixed-player/tab separation, hidden-page polling, and immediate foreground refresh.
+- Dialogue coverage verifies that editing a title preserves A/B turns and that role B's selected voice survives reloading the draft. Restored materials select their own language and retain dialogue controls.
+- A separate real FastAPI test instance played the existing synthetic two-voice recording, entered/exited immersive mode, restored role controls, and reused saved audio after reload with **zero audio requests and no JavaScript errors**. Checked widths: 320, 390, 768, 1024, and 1440 pixels.
+- Reviewed and refreshed the four approved documentation JPEGs from synthetic browser fixtures. User accounts, personal materials, actual URLs, and operational captures are not present in those images.
+- The design-skill gate ended **GATE: OPEN 15** for the login screen's marketing-layout exceptions. See [design review](DESIGN_REVIEW.md); this is not a gate PASS.
+- This UI iteration does not newly certify physical iOS/Android devices, Safari, cold boot, or a Docker runtime build. Model weights, private networking, and the server's persistence layout are unchanged. Deployment and preservation checks are kept in private local evidence.
+
 ## 2026-11-16 · v0.4 learning workspace
 
 - Native Apple Silicon / Python 3.11: **66 pytest tests**, **7 Node playback tests**, and **22 Chrome desktop/mobile browser tests** passed. Ruff, Python compilation, browser-module syntax, Prettier, and source whitespace checks passed. A Starlette/httpx test-client deprecation warning is non-blocking; runtime dependencies were not upgraded in this iteration.
@@ -12,7 +22,7 @@
 - Formal design-skill gate status and contextual exceptions are recorded in [the design review](DESIGN_REVIEW.md). Application/browser acceptance is separate from that marketing-page checker.
 - This round does **not** certify physical iOS/Android devices, Safari, OS lock-screen/background playback, a full computer cold boot, or a newly rebuilt Docker runtime. Existing login-service configuration is retained and runtime restart is verified separately in private deployment evidence.
 
-# Validation record
+## Earlier validation record
 
 Date: 2026-10-05. Release: 0.2.0 (earlier browser/audio acceptance retained where noted). Environment: native Apple Silicon, Python 3.11, CPU inference, FFmpeg, Chrome. Private recordings and screenshots remain in ignored local data directories.
 

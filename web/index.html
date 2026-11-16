@@ -2,7 +2,7 @@
 <html lang="zh-CN" data-type="software">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#143c32" />
     <title>Sayloop · 语料创作与语言练习</title>
     <meta name="description" content="整理自己的表达，创作场景对话，生成声音并逐句练习。" />
@@ -61,46 +61,26 @@
       </form>
     </section>
     <aside class="sidebar">
-      <a class="brand" href="#library" aria-label="Sayloop home"
+      <a class="brand" href="#library" aria-label="Sayloop 语料库"
         ><span class="brand-mark">s</span
-        ><span class="brand-word">Sayloop<small>Your words, out loud.</small></span></a
+        ><span class="brand-word">Sayloop<small>从表达，到练习。</small></span></a
       >
       <div class="workspace-label">个人学习空间</div>
-      <nav aria-label="Main navigation">
+      <nav aria-label="工作区导航">
         <button class="nav-item" data-view="authoring" aria-label="语料创作" title="语料创作">
           <span data-icon="spark"></span><span class="nav-text">语料创作</span>
         </button>
-        <button
-          class="nav-item active"
-          data-view="library"
-          aria-label="My materials"
-          title="My materials"
-        >
-          <span data-icon="library"></span><span class="nav-text">My materials</span
+        <button class="nav-item active" data-view="library" aria-label="语料库" title="语料库">
+          <span data-icon="library"></span><span class="nav-text">语料库</span
           ><span id="nav-count" class="nav-count">0</span>
         </button>
-        <button
-          class="nav-item"
-          data-view="studio"
-          aria-label="Speech studio"
-          title="Speech studio"
-        >
+        <button class="nav-item" data-view="studio" aria-label="语音工作台" title="语音工作台">
           <span data-icon="sliders"></span><span class="nav-text">语音工作台</span>
         </button>
-        <button
-          class="nav-item"
-          data-view="voices"
-          aria-label="Voice collection"
-          title="Voice collection"
-        >
+        <button class="nav-item" data-view="voices" aria-label="声音库" title="声音库">
           <span data-icon="wave"></span><span class="nav-text">声音库</span>
         </button>
-        <button
-          class="nav-item"
-          data-view="practice"
-          aria-label="Practice room"
-          title="Practice room"
-        >
+        <button class="nav-item" data-view="practice" aria-label="练习室" title="练习室">
           <span data-icon="headphones"></span><span class="nav-text">练习室</span>
         </button>
         <button class="nav-item" data-view="progress" aria-label="学习进度" title="学习进度">
@@ -108,20 +88,20 @@
         </button>
       </nav>
       <div class="sidebar-note">
-        <span class="eyebrow">A LITTLE, EVERY DAY</span>
-        <p>Learn to say<br />what you mean.</p>
-        <span>Your ideas. Your voice.<br />A practice that feels like you.</span>
+        <span class="eyebrow">每天练一点</span>
+        <p>练习自己<br />想说的话。</p>
+        <span>从自己的表达开始，<br />让每次练习都有意义。</span>
       </div>
       <a
         class="method-link"
         href="https://1000h.org/training-tasks/kick-off.html"
         target="_blank"
         rel="noreferrer"
-        ><span data-icon="book"></span>The 1,000-hour journey<span>↗</span></a
+        ><span data-icon="book"></span>1000 小时学习方法<span>↗</span></a
       >
       <div class="local-status">
         <span class="status-dot"></span>
-        <div>Local & personal<small id="engine-status">Connecting to your studio…</small></div>
+        <div>私有学习空间<small id="engine-status">正在连接…</small></div>
       </div>
       <div class="profile">
         <span class="avatar">S</span>
@@ -181,54 +161,64 @@
           <button
             id="sidebar-toggle"
             class="icon-button"
-            aria-label="Collapse sidebar"
+            aria-label="收起侧栏"
             aria-expanded="true"
           >
             <span data-icon="panel"></span>
           </button>
-          <span class="mobile-brand">Sayloop / </span><span class="muted">Workspace</span
-          ><span class="slash">/</span><span id="breadcrumb">My materials</span>
+          <span class="mobile-brand">Sayloop</span
+          ><span class="desktop-workspace muted">学习空间</span><span class="slash">/</span
+          ><span id="breadcrumb">语料库</span>
         </div>
-        <button id="mobile-logout" class="text-button" type="button">退出账号</button
-        ><span class="top-badge"><span class="status-dot"></span>On your device</span>
+        <button
+          id="more-tools"
+          class="icon-button mobile-more"
+          type="button"
+          aria-label="更多功能"
+          aria-haspopup="dialog"
+          aria-controls="more-menu"
+          aria-expanded="false"
+        >
+          <span data-icon="menu"></span></button
+        ><span class="top-badge"><span class="status-dot"></span>本地运行</span>
       </header>
       <main id="main-content">
         <section id="view-library" class="view">
-          <div class="page-heading">
+          <div class="page-heading library-heading">
             <div>
-              <span class="eyebrow">MAKE IT YOUR OWN</span>
-              <h1>你的语料，<em>你的表达。</em></h1>
-              <p>从想法到表达，从声音到记忆。</p>
+              <span class="eyebrow">个人学习空间</span>
+              <h1>语料库</h1>
+              <p>把想说的话，留给每天的练习。</p>
             </div>
-            <button class="button primary" id="new-material">
-              <span data-icon="plus"></span>直接导入文本
-            </button>
-          </div>
-          <div class="library-welcome">
-            <div>
-              <h2>今天，练习你想说的话。</h2>
-              <p>从一个想法或场景开始，打磨成文，再生成自己的练习音频。</p>
+            <div class="heading-actions">
+              <button class="button primary" id="hero-start">
+                <span data-icon="plus"></span>创作语料</button
+              ><button
+                id="library-tools"
+                class="icon-button"
+                aria-label="语料库更多操作"
+                aria-haspopup="dialog"
+                aria-controls="library-menu"
+              >
+                <span data-icon="more"></span>
+              </button>
             </div>
-            <button id="hero-start" class="button primary">开始语料创作 →</button>
           </div>
           <div class="stats-row">
             <div>
               <span data-icon="library"></span><strong id="stat-materials">0</strong
-              ><span>personal materials</span>
+              ><span>份语料</span>
             </div>
             <div>
               <span data-icon="headphones"></span><strong id="stat-minutes">0</strong
-              ><span>minutes ready to practice</span>
+              ><span>分钟练习音频</span>
             </div>
-            <div>
-              <span data-icon="wave"></span><strong>54</strong
-              ><span>voices to explore · 女声与男声</span>
-            </div>
+            <div><span data-icon="wave"></span><strong>54</strong><span>种声音</span></div>
           </div>
           <div class="section-toolbar">
             <div>
-              <h2>Your material library <span id="library-count" class="count-badge">0</span></h2>
-              <p>Written by you. Ready to become part of your everyday voice.</p>
+              <h2>全部语料 <span id="library-count" class="count-badge">0</span></h2>
+              <p>按自己的节奏，一份一份练习。</p>
             </div>
             <label class="search"
               ><span data-icon="search"></span
@@ -241,48 +231,42 @@
           </div>
           <div class="filter-row">
             <div class="segmented">
-              <button class="active" data-filter="all">All materials</button
-              ><button data-filter="ready">Audio ready</button
-              ><button data-filter="draft">Text only</button>
+              <button class="active" data-filter="all">全部</button
+              ><button data-filter="ready">可练习</button
+              ><button data-filter="draft">待配音</button>
             </div>
-            <button class="text-button" id="import-button">
-              <span data-icon="upload"></span>Import .txt / .md
-            </button>
           </div>
-          <div class="library-filters">
-            <label for="library-language"
-              >语言<select id="library-language">
-                <option value="">全部语言</option>
-              </select></label
-            ><label for="library-kind"
-              >内容<select id="library-kind">
-                <option value="">全部类型</option>
-                <option value="dialogue">角色对话</option>
-                <option value="text">独白 / 文章</option>
-              </select></label
-            ><label for="library-scope"
-              >范围<select id="library-scope">
-                <option value="">全部可见</option>
-                <option value="mine">我的语料</option>
-                <option value="shared">共享语料</option>
-                <option value="favorite">收藏</option>
-                <option value="archived">已归档</option>
-              </select></label
-            ><label for="library-sort"
-              >排序<select id="library-sort">
-                <option value="new">最近添加</option>
-                <option value="title">按标题</option>
-              </select></label
-            >
-          </div>
+          <details class="filter-details">
+            <summary>筛选与排序<span id="active-filter-count" hidden></span></summary>
+            <div class="library-filters">
+              <label for="library-language"
+                >语言<select id="library-language">
+                  <option value="">全部语言</option>
+                </select></label
+              ><label for="library-kind"
+                >内容<select id="library-kind">
+                  <option value="">全部类型</option>
+                  <option value="dialogue">角色对话</option>
+                  <option value="text">独白 / 文章</option>
+                </select></label
+              ><label for="library-scope"
+                >范围<select id="library-scope">
+                  <option value="">全部可见</option>
+                  <option value="mine">我的语料</option>
+                  <option value="shared">共享语料</option>
+                  <option value="favorite">收藏</option>
+                  <option value="archived">已归档</option>
+                </select></label
+              ><label for="library-sort"
+                >排序<select id="library-sort">
+                  <option value="new">最近添加</option>
+                  <option value="title">按标题</option>
+                </select></label
+              >
+            </div>
+          </details>
           <div id="material-grid" class="material-grid"></div>
           <button id="library-load-more" class="button secondary" hidden>再显示 24 份语料</button>
-          <div class="library-bottom">
-            <span>Everything here stays on your computer.</span
-            ><a href="/api/export?kind=full" class="text-button"
-              ><span data-icon="download"></span>Download all full recordings</a
-            >
-          </div>
         </section>
 
         <section id="view-authoring" class="view" hidden>
@@ -472,49 +456,46 @@
         <section id="view-studio" class="view" hidden>
           <div class="page-heading">
             <div>
-              <span class="eyebrow">FROM TEXT TO SOMETHING YOU CAN HEAR</span>
-              <h1>Make it <em>sound like you.</em></h1>
-              <p>Try a short preview. Find your rhythm. Then bring the whole story to life.</p>
+              <span class="eyebrow">语音工作台</span>
+              <h1>给文字，<em>一个声音。</em></h1>
+              <p>选好声音，先试听，再生成完整录音。</p>
             </div>
           </div>
           <div class="studio-layout">
             <div class="editor-panel panel">
               <div class="panel-bar">
-                <span class="eyebrow">YOUR MATERIAL</span
+                <span class="eyebrow">语料正文</span
                 ><button id="save-material" class="text-button">
-                  <span data-icon="save"></span>Save to library
+                  <span data-icon="save"></span>保存语料
                 </button>
               </div>
               <input
                 id="material-title"
                 class="title-input"
-                placeholder="Give your material a title"
+                placeholder="为语料起一个标题"
                 maxlength="160"
-                aria-label="Material title"
+                aria-label="语料标题"
               /><textarea
                 id="editor"
-                placeholder="What would you like to say?\n\nPaste your article, a personal story, or a few sentences you want to practice…"
-                aria-label="Text to turn into speech"
+                placeholder="粘贴要朗读的文字，或先到语料创作中打磨一段自己的表达。"
+                aria-label="用于配音的文字"
                 maxlength="50000"
               ></textarea>
               <div class="editor-footer">
                 <span id="editor-count">0 words · 0 characters</span
                 ><button id="studio-import" class="text-button">
-                  <span data-icon="upload"></span>Import text
+                  <span data-icon="upload"></span>导入文本
                 </button>
               </div>
-              <p class="editor-hint">
-                Choose the language your text is already written in. Speech generation does not
-                translate it.
-              </p>
+              <p class="editor-hint">请选择正文对应的语言；需要翻译时，先到语料创作中确认表达。</p>
             </div>
             <div class="settings-panel panel">
               <div class="panel-bar">
-                <span class="eyebrow">FIND YOUR SOUND</span><span data-icon="sliders"></span>
+                <span class="eyebrow">选择声音</span><span data-icon="sliders"></span>
               </div>
-              <label class="field-label" for="language">Language & accent</label
+              <label class="field-label" for="language">语言与口音</label
               ><select id="language"></select
-              ><label class="field-label" for="voice">Voice</label
+              ><label id="voice-label" class="field-label" for="voice">配音声音</label
               ><select id="voice"></select>
               <div id="voice-b-row" hidden>
                 <label class="field-label" for="voice-b">角色 B 的声音</label
@@ -523,40 +504,38 @@
                 <button id="edit-dialogue" class="text-button">编辑对话内容</button>
               </div>
               <p id="voice-note" class="field-help"></p>
-              <button id="browse-voices" class="text-button">
-                Explore the voice collection <span>↗</span>
-              </button>
-              <div class="divider"></div>
-              <div class="range-label">
-                <label for="speed">Speaking pace</label><output id="speed-value">0.95×</output>
-              </div>
-              <input id="speed" type="range" min="0.5" max="1.5" step="0.05" value="0.95" />
-              <div class="range-ends"><span>Take it slow</span><span>Keep it moving</span></div>
-              <div class="range-label">
-                <label for="pause">Pause between passages</label
-                ><output id="pause-value">0.3s</output>
-              </div>
-              <input id="pause" type="range" min="0" max="2" step="0.1" value="0.3" />
-              <div class="format-note">
-                <span data-icon="music"></span>
-                <div>
-                  Ready for your everyday practice<small
-                    >MP3 + original WAV · generated locally</small
-                  >
+              <button id="browse-voices" class="text-button">比较更多声音 <span>↗</span></button>
+              <details class="audio-settings">
+                <summary>语速与停顿</summary>
+                <div class="divider"></div>
+                <div class="range-label">
+                  <label for="speed">语速</label><output id="speed-value">0.95×</output>
                 </div>
+                <input id="speed" type="range" min="0.5" max="1.5" step="0.05" value="0.95" />
+                <div class="range-ends"><span>慢一点</span><span>快一点</span></div>
+                <div class="range-label">
+                  <label for="pause">段落间停顿</label><output id="pause-value">0.3s</output>
+                </div>
+                <input id="pause" type="range" min="0" max="2" step="0.1" value="0.3" />
+                <div class="format-note">
+                  <span data-icon="music"></span>
+                  <div>保留原始音质<small>MP3 与 WAV · 本机生成</small></div>
+                </div>
+              </details>
+              <div class="generation-actions">
+                <button id="preview" class="button secondary full">
+                  <span data-icon="play"></span>先试听</button
+                ><button id="generate" class="button primary full">
+                  <span data-icon="spark"></span>生成完整录音
+                </button>
               </div>
-              <button id="preview" class="button secondary full">
-                <span data-icon="play"></span>Preview first 25 seconds</button
-              ><button id="generate" class="button primary full">
-                <span data-icon="spark"></span>Generate full audio
-              </button>
-              <p class="privacy-note">Your text is processed on this computer.</p>
+              <p class="privacy-note">语音在本机生成，原文与已有录音会保留。</p>
             </div>
           </div>
           <div class="section-toolbar">
             <div>
-              <h2>Your recordings</h2>
-              <p>Progress, previews, and full-length audio — all in one place.</p>
+              <h2>录音版本</h2>
+              <p>试听和完整录音都保存在这里。</p>
             </div>
           </div>
           <div id="job-list" class="job-list"></div>
@@ -565,21 +544,13 @@
         <section id="view-voices" class="view" hidden>
           <div class="page-heading">
             <div>
-              <span class="eyebrow">A VOICE WORTH COMING BACK TO</span>
-              <h1>Find your <em>listening companion.</em></h1>
+              <span class="eyebrow">声音库</span>
+              <h1>找到喜欢的<em>声音。</em></h1>
               <p>筛选语言和声音，比较男声与女声。</p>
             </div>
             <a class="button secondary" href="/api/export?kind=preview"
-              ><span data-icon="download"></span>Download previews</a
+              ><span data-icon="download"></span>导出试听</a
             >
-          </div>
-          <div class="voice-intro">
-            <span data-icon="headphones"></span>
-            <div>
-              <strong>Same words. Different character.</strong>
-              <p>试听使用对应语言的短句；也可以在语音工作台使用自己的语料。</p>
-            </div>
-            <span class="pill">20–30 SECOND PREVIEWS</span>
           </div>
           <div class="library-filters">
             <label for="voice-language">试听语言<select id="voice-language"></select></label
@@ -593,59 +564,39 @@
           </div>
           <div id="voice-grid" class="voice-grid"></div>
           <div class="other-voices panel">
-            <h3>Another language, another possibility.</h3>
-            <p>
-              Explore all 54 voices across 9 language and accent options in the speech studio.
-              Quality varies by voice and language.
-            </p>
-            <button id="all-voices" class="text-button">
-              Open language settings <span>↗</span>
-            </button>
+            <h3>把声音用到自己的语料里</h3>
+            <p>54 种声音、9 种语言与口音；先比较短句，再用自己的语料试听。</p>
+            <button id="all-voices" class="text-button">打开语音工作台 <span>↗</span></button>
           </div>
         </section>
 
         <section id="view-practice" class="view" hidden>
           <div class="page-heading">
             <div>
-              <span class="eyebrow">LISTEN. SAY IT. MAKE IT YOURS.</span>
-              <h1>A little more <em>fluent, every day.</em></h1>
-              <p>Follow a passage, loop it, and speak along at your own pace.</p>
+              <span class="eyebrow">练习室</span>
+              <h1>听一句，<em>说一句。</em></h1>
+              <p>听清楚，再开口，直到这句话属于自己。</p>
             </div>
             <span class="practice-time"
-              ><span data-icon="clock"></span
-              ><span id="practice-time">0 min listened today</span></span
+              ><span data-icon="clock"></span><span id="practice-time">开始今天的练习</span></span
             >
           </div>
           <div class="practice-toolbar panel">
-            <label for="practice-recording">Your recording</label
+            <label for="practice-recording">选择录音</label
             ><select id="practice-recording">
-              <option value="">Select a full recording</option></select
-            ><button id="hide-text" class="button secondary">Hide text</button>
-          </div>
-          <div class="device-cache panel">
-            <div>
-              <strong>Take your audio along</strong
-              ><small id="device-status" role="status"
-                >Choose a recording, then save it over Wi-Fi.</small
-              >
-            </div>
-            <button id="save-device" class="button secondary" disabled>Save on this device</button>
-            <button id="remove-device" class="text-button" hidden>Remove device copy</button>
-          </div>
-          <div class="practice-guide">
-            <span>01 &nbsp; Listen closely</span><span>02 &nbsp; Speak along</span
-            ><span>03 &nbsp; Repeat from memory</span>
+              <option value="">选择一份完整录音</option></select
+            ><button id="hide-text" class="button secondary">隐藏文字</button>
           </div>
           <div class="practice-controls panel">
-            <div class="mode-buttons" role="group" aria-label="Practice mode">
-              <button data-mode="continuous" aria-pressed="true">Continuous</button>
-              <button data-mode="shadow" aria-pressed="false">Listen & speak</button>
-              <button data-mode="loop" aria-pressed="false">Loop sentence</button>
+            <div class="mode-buttons" role="group" aria-label="练习方式">
+              <button data-mode="continuous" aria-pressed="true">连续听</button>
+              <button data-mode="shadow" aria-pressed="false">逐句跟读</button>
+              <button data-mode="loop" aria-pressed="false">单句循环</button>
             </div>
             <div class="practice-options">
-              <label><input id="auto-follow" type="checkbox" checked />Auto-follow</label
+              <label><input id="auto-follow" type="checkbox" checked />自动跟随</label
               ><button id="enter-focus" class="text-button" data-action="focus">
-                <span data-icon="expand"></span>Immersive
+                <span data-icon="expand"></span>专注练习
               </button>
             </div>
           </div>
@@ -654,94 +605,98 @@
               <button
                 class="icon-button"
                 data-action="previous"
-                aria-label="Previous sentence"
-                title="Previous sentence (←)"
+                aria-label="上一句"
+                title="上一句 (←)"
               >
                 <span data-icon="previous"></span></button
               ><button
                 class="icon-button"
-                data-action="replay"
-                aria-label="Replay sentence"
-                title="Replay sentence (R)"
+                data-action="重播"
+                aria-label="重播本句"
+                title="重播本句 (R)"
               >
                 <span data-icon="repeat"></span></button
               ><button
                 class="icon-button"
                 data-action="next"
-                aria-label="Next sentence"
-                title="Next sentence (→)"
+                aria-label="下一句"
+                title="下一句 (→)"
               >
                 <span data-icon="next"></span>
               </button>
             </div>
-            <span id="sentence-status" role="status">Select a recording to begin.</span>
-            <span class="keyboard-hint"><kbd>Space</kbd> pause / continue <kbd>R</kbd> replay</span>
+            <span id="sentence-status" role="status">选择录音，开始练习。</span>
+            <span class="keyboard-hint"><kbd>Space</kbd> 暂停 / 继续 <kbd>R</kbd> 重播</span>
           </div>
           <div id="focus-stage" class="focus-stage" hidden>
             <div class="focus-top">
               <a href="#library" class="focus-brand">sayloop<span> / practice</span></a
               ><button class="focus-exit" data-action="escape">
-                <span data-icon="minimize"></span>Exit immersive <kbd>Esc</kbd>
+                <span data-icon="minimize"></span>退出专注 <kbd>Esc</kbd>
               </button>
             </div>
             <div class="focus-heading">
-              <span id="focus-title">Your listening room</span
-              ><span id="focus-position">00 / 00</span>
+              <span id="focus-title">专注练习</span><span id="focus-position">00 / 00</span>
             </div>
             <div class="focus-copy">
               <p id="focus-previous" aria-hidden="true"></p>
               <span id="focus-cue" class="focus-cue">LISTEN. SPEAK. REPEAT.</span>
-              <p id="focus-current">Make room for your voice.</p>
+              <p id="focus-current">给自己的声音留一点时间。</p>
               <p id="focus-next" aria-hidden="true"></p>
             </div>
             <div class="focus-bottom">
-              <span id="focus-instruction">Choose a recording to begin.</span>
+              <span id="focus-instruction">选择录音，开始练习。</span>
               <div class="focus-transport">
-                <button
-                  data-action="previous"
-                  aria-label="Previous sentence"
-                  title="Previous sentence (←)"
-                >
+                <button data-action="previous" aria-label="上一句" title="上一句 (←)">
                   <span data-icon="previous"></span></button
-                ><button
-                  data-action="replay"
-                  aria-label="Replay sentence"
-                  title="Replay sentence (R)"
-                >
+                ><button data-action="重播" aria-label="重播本句" title="重播本句 (R)">
                   <span data-icon="repeat"></span></button
-                ><button data-action="toggle" class="focus-play" aria-label="Play or pause">
+                ><button data-action="toggle" class="focus-play" aria-label="播放或暂停">
                   <span data-icon="play"></span></button
-                ><button data-action="next" aria-label="Next sentence" title="Next sentence (→)">
+                ><button data-action="next" aria-label="下一句" title="下一句 (→)">
                   <span data-icon="next"></span>
                 </button>
               </div>
-              <div class="focus-modes" role="group" aria-label="Immersive practice mode">
-                <button data-mode="continuous" aria-pressed="true">Continuous</button
-                ><button data-mode="shadow" aria-pressed="false">Listen & speak</button
-                ><button data-mode="loop" aria-pressed="false">Loop sentence</button>
+              <div class="focus-modes" role="group" aria-label="专注练习 practice mode">
+                <button data-mode="continuous" aria-pressed="true">连续听</button
+                ><button data-mode="shadow" aria-pressed="false">逐句跟读</button
+                ><button data-mode="loop" aria-pressed="false">单句循环</button>
               </div>
             </div>
           </div>
-          <button id="audio-feedback" class="text-button">反馈这段录音的声音与节奏</button>
+
+          <details id="practice-tools" class="practice-tools">
+            <summary>离线音频与反馈</summary>
+            <div class="device-cache panel">
+              <div>
+                <strong>把录音留在设备上</strong
+                ><small id="device-status" role="status"
+                  >选择录音后，可在 Wi‑Fi 下保存一份设备副本。</small
+                >
+              </div>
+              <button id="save-device" class="button secondary" disabled>保存到此设备</button>
+              <button id="remove-device" class="text-button" hidden>移除设备副本</button>
+            </div>
+            <button id="audio-feedback" class="text-button">反馈声音与节奏</button>
+          </details>
           <div id="transcript" class="transcript panel">
             <div class="empty-state">
               <span data-icon="book"></span>
-              <h3>Your practice starts with your words.</h3>
-              <p>Choose a completed full recording above.</p>
+              <h3>从一份自己的语料开始</h3>
+              <p>选择已生成的完整录音，逐句听、说、重播。</p>
             </div>
           </div>
         </section>
       </main>
       <footer class="page-footer">
-        <span>Sayloop</span><span>Built around the things you want to say.</span
-        ><span>LOCAL FIRST · KOKORO</span>
+        <span>Sayloop</span><span>练习自己想说的话。</span><span>本地生成 · 私有保存</span>
       </footer>
     </div>
 
-    <section class="player" aria-label="Audio player" hidden>
+    <section class="player" aria-label="音频播放器" hidden>
       <div class="player-art"><span data-icon="wave"></span></div>
       <div class="player-meta">
-        <strong id="player-title">Choose a recording</strong><small id="player-subtitle"></small>
+        <strong id="player-title">选择录音</strong><small id="player-subtitle"></small>
       </div>
       <button id="play-toggle" class="play-toggle" aria-label="Play">
         <span data-icon="play"></span></button
@@ -753,19 +708,108 @@
         max="100"
         step="0.01"
         value="0"
-        aria-label="Seek audio"
+        aria-label="音频进度"
       /><span id="duration" class="time">0:00</span
-      ><select id="playback-rate" aria-label="Playback speed">
+      ><button
+        id="player-options"
+        class="icon-button"
+        aria-label="播放设置"
+        aria-haspopup="dialog"
+        aria-controls="playback-menu"
+      >
+        <span data-icon="more"></span>
+      </button>
+      <audio id="audio" preload="metadata"></audio>
+    </section>
+
+    <nav id="mobile-navigation" class="mobile-navigation" aria-label="手机工作区导航">
+      <button class="mobile-tab" data-view="library">
+        <span data-icon="library"></span><span>语料</span>
+      </button>
+      <button class="mobile-tab" data-view="authoring">
+        <span data-icon="spark"></span><span>创作</span>
+      </button>
+      <button class="mobile-tab" data-view="practice">
+        <span data-icon="headphones"></span><span>练习</span>
+      </button>
+    </nav>
+    <dialog id="more-menu" class="action-sheet" aria-labelledby="more-menu-title">
+      <div class="sheet-heading">
+        <div>
+          <span class="sheet-kicker">Sayloop</span>
+          <h2 id="more-menu-title">更多功能</h2>
+        </div>
+        <button class="icon-button" data-close-sheet aria-label="关闭更多功能">
+          <span data-icon="close"></span>
+        </button>
+      </div>
+      <div class="sheet-list">
+        <button data-view="studio">
+          <span data-icon="sliders"></span
+          ><span><strong>语音工作台</strong><small>选择声音与录音设置</small></span
+          ><span class="sheet-chevron">›</span></button
+        ><button data-view="voices">
+          <span data-icon="wave"></span
+          ><span><strong>声音库</strong><small>比较男声、女声与不同口音</small></span
+          ><span class="sheet-chevron">›</span></button
+        ><button data-view="progress">
+          <span data-icon="clock"></span
+          ><span><strong>学习进度</strong><small>学习目标、里程碑与账号设置</small></span
+          ><span class="sheet-chevron">›</span>
+        </button>
+      </div>
+      <div class="sheet-account">
+        <span id="mobile-profile-name">学习者</span
+        ><button id="mobile-logout" class="text-button">退出账号</button>
+      </div>
+    </dialog>
+    <dialog id="library-menu" class="action-sheet" aria-labelledby="library-menu-title">
+      <div class="sheet-heading">
+        <h2 id="library-menu-title">语料库操作</h2>
+        <button class="icon-button" data-close-sheet aria-label="关闭语料库操作">
+          <span data-icon="close"></span>
+        </button>
+      </div>
+      <div class="sheet-list">
+        <button id="new-material"><span data-icon="plus"></span><span>新建纯文本</span></button
+        ><button id="import-button">
+          <span data-icon="upload"></span><span>导入 .txt / .md</span></button
+        ><a href="/api/export?kind=full"
+          ><span data-icon="download"></span><span>导出全部完整录音</span></a
+        >
+      </div>
+    </dialog>
+    <dialog id="material-menu" class="action-sheet" aria-labelledby="material-menu-title">
+      <div class="sheet-heading">
+        <h2 id="material-menu-title">语料操作</h2>
+        <button class="icon-button" data-close-sheet aria-label="关闭语料操作">
+          <span data-icon="close"></span>
+        </button>
+      </div>
+      <div id="material-menu-content" class="sheet-list"></div>
+    </dialog>
+    <dialog id="playback-menu" class="action-sheet" aria-labelledby="playback-menu-title">
+      <div class="sheet-heading">
+        <h2 id="playback-menu-title">播放设置</h2>
+        <button class="icon-button" data-close-sheet aria-label="关闭播放设置">
+          <span data-icon="close"></span>
+        </button>
+      </div>
+      <label class="field-label" for="playback-rate">播放速度</label
+      ><select id="playback-rate" aria-label="播放速度">
         <option value="0.75">0.75×</option>
         <option value="1" selected>1×</option>
         <option value="1.25">1.25×</option>
         <option value="1.5">1.5×</option></select
-      ><button id="repeat" class="icon-button" aria-label="Repeat recording" aria-pressed="false">
-        <span data-icon="repeat"></span></button
-      ><a id="player-download" class="icon-button" aria-label="Download MP3"
-        ><span data-icon="download"></span></a
-      ><audio id="audio" preload="metadata"></audio>
-    </section>
+      ><button id="repeat" class="sheet-action" aria-label="循环整段录音" aria-pressed="false">
+        <span data-icon="repeat"></span>循环整段录音</button
+      ><a id="player-download" class="sheet-action" aria-label="下载 MP3"
+        ><span data-icon="download"></span>下载 MP3</a
+      >
+      <button id="hide-player" class="sheet-action">
+        <span data-icon="close"></span>收起播放器
+      </button>
+    </dialog>
     <input id="file-input" type="file" accept=".txt,.md,text/plain,text/markdown" hidden />
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
   </body>

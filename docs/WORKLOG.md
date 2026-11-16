@@ -53,3 +53,8 @@ Reproduced HTTP 400 when accessing the service by its numeric tailnet address: H
 Implemented Chinese polishing, configurable expression variants, batched scenario authoring, editable revision history, and primary/local model fallback. Added invitation-based accounts with private legacy ownership, account-aware audio/export checks, shared-material revocation, role-specific dialogue voices/timing, feedback, library filters, listening records, goals, milestones, and an opt-in leaderboard. Account-aware smoke checks and backup guidance now include the private SQLite database and model configuration. Source and operational evidence remain separate.
 
 Verified synthetic API/browser flows, real primary and local model inference, thirty-dialogue batches, male/female dialogue synthesis, and saved-audio playback without retransfers. See the dated [validation record](VALIDATION.md) and [workspace design](LEARNING_WORKSPACE.md). Physical phones, a cold machine reboot, and a new container build are outside this round's acceptance.
+
+
+## 2026-11-17 · Mobile workspace refinement
+
+Replaced the dense phone menu with three short primary tabs and a native More sheet. Unified Chinese labels and button hierarchy, grouped secondary library/recording/player actions, simplified voice settings, and protected content from fixed player/tab overlap. Added draft recovery for role-specific voices and title-edited dialogues. Hidden tabs stop polling; foreground return refreshes immediately. Responsive, modal-focus, keyboard, account/cache, and real-audio checks are recorded in VALIDATION.md. Private access configuration and user data remain separate from source.

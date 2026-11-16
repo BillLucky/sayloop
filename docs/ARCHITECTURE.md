@@ -62,3 +62,10 @@ Another TTS engine should implement the current audio/segment result contract. L
 ## Learning workspace modules
 
 `app/accounts.py` manages local credentials, sessions, ownership resolution, study events, and statistics in SQLite. `app/learning.py` exposes authenticated account, authoring, metadata, feedback, and study routes. `app/compositions.py` persists immutable authoring jobs and runs a separate bounded single-worker model queue. `web/workspace.js` owns the authoring and progress UI; `web/workspace.css` extends the existing visual system. See [v0.4 design and boundaries](LEARNING_WORKSPACE.md).
+
+
+## Compact navigation and refresh policy (v0.4.1)
+
+`web/navigation.js` coordinates the same `data-view` routes across the desktop sidebar and three-tab mobile navigation. Native dialog sheets provide focus containment, Escape/backdrop dismissal, and secondary actions; they never own playback state. `web/navigation.css` defines compact navigation, sheet, action-hierarchy, and safe-area layout rules on the existing palette. The global player sits above the mobile tabs; immersive mode hides the tabs. Hiding the player pauses it; any later transport start or recording selection reveals it again.
+
+The browser polls speech jobs every 3.5 seconds while tasks are active, about every 30 seconds when idle, and stops list polling while hidden. Returning to the foreground refreshes immediately. Authoring polling also pauses while hidden. Running composition responses omit the persisted partial-result field; interruption still exposes completed batches through the result contract. No model, voice weight, or network policy changes are needed for this UI iteration.

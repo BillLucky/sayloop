@@ -56,7 +56,7 @@ export async function saveAudio(url) {
   if (existing) return existing;
   const response = await fetch(url);
   if (response.status !== 200 || !response.headers.get('content-type')?.startsWith('audio/')) {
-    throw new Error('Unable to save the complete recording. Refresh and try again.');
+    throw new Error('无法保存完整录音，请刷新后重试。');
   }
   const blob = await response.blob();
   if (!blob.size) throw new Error('The recording is empty.');

@@ -83,3 +83,8 @@ Caches are per origin, browser profile, account, and device. The app cannot dete
 Back up the entire private data directory while both queues are idle and the service is stopped, including `accounts.sqlite3`, compositions, materials, jobs, audio, and local model configuration. Restoring only audio loses ownership and timing information. Keep model weights in the existing model cache. `scripts/stop.py` refuses active speech or authoring queues.
 
 The installation uses its existing OS login service; deployment updates and restarts that service after checks. Process recovery and login-item configuration can be verified without restarting the computer. A cold boot, physical phones, and mobile OS lock-screen behavior require separate device acceptance. Source checks and browser emulation do not certify those platforms.
+
+
+## Phone interaction update (v0.4.1)
+
+The phone has three primary tabs: materials, authoring, and practice. More opens a native action sheet for studio, voices, progress, and account actions. The library has one prominent create action, contextual card actions, and collapsible advanced filters. Audio settings and offline tools are disclosed on demand. Player settings and downloads share one sheet; hiding the player pauses it and preserves the selected recording. Keyboard focus, Escape, and backdrop dismissal follow the native dialog behavior. Role B's selected voice and dialogue metadata survive draft restoration and title-only version creation.

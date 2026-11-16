@@ -4,7 +4,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 DATA = Path(os.environ.get("LLH_DATA_DIR", ROOT / "data")).expanduser().resolve()
 REPO_ID = "hexgrad/Kokoro-82M"
-VERSION = "0.4.0"
+VERSION = "0.4.1"
 REVISION = "f3ff3571791e39611d31c381e3a41a3af07b4987"
 SAMPLE_RATE = 24000
 LANGUAGES = {
@@ -75,11 +75,11 @@ VOICE_NAMES = [
     "zm_yunyang",
 ]
 VOICE_NOTES = {
-    "am_fenrir": "Full-length default · compare it with Michael and Puck",
-    "am_michael": "A second choice for long-form narration",
-    "am_puck": "Try it with conversational writing",
-    "am_adam": "Official training grade F+ · listen before using",
-    "am_santa": "Limited training data · audition first",
+    "am_fenrir": "适合全文配音，也可以和 Michael、Puck 比较试听",
+    "am_michael": "适合长文朗读",
+    "am_puck": "适合日常对话与口语文本",
+    "am_adam": "官方训练评级 F+，建议先试听",
+    "am_santa": "训练数据较少，建议先试听",
 }
 
 

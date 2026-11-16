@@ -125,7 +125,7 @@ def voices():
                 name=v.split("_", 1)[1].title(),
                 language=v[0],
                 gender="male" if v[1] == "m" else "female",
-                note=VOICE_NOTES.get(v, "Listen to find your fit"),
+                note=VOICE_NOTES.get(v, "先用短句试听，再选择适合的声音"),
             )
             for v in VOICE_NAMES
         ],

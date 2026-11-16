@@ -31,11 +31,11 @@ To disable LAN mode, run `scripts/network.py --no-lan` with the project Python a
 ## Save audio before a walk
 
 1. On your phone over Wi-Fi, open the same HTTPS address you will use outside.
-2. In **Practice room**, choose a recording and tap **Save on this device**.
-3. Wait for **Saved on this device ✓** and the file size. Repeat for each recording you want.
+2. In **练习 (Practice)**, choose a recording, expand **离线音频与反馈**, and tap **保存到此设备**.
+3. Wait for **已保存到此设备 ✓** and the file size. Repeat for each recording you want.
 4. Reopen the page or switch away and back to use the saved copy. Playback and sentence seeking then read that copy without audio requests.
 
-Audio is stored in IndexedDB as a complete blob. **Remove device copy** removes that recording from this browser's saved storage, not from the server. An already loaded recording may remain in memory until you close/reload the page. Browser HTTP caches are managed separately; clearing the site's data removes all browser copies. Ordinary online playback also uses private HTTP caching; versioned audio URLs change when the generated file changes. Old unversioned links revalidate instead of keeping stale recordings.
+Audio is stored in IndexedDB as a complete blob. **移除设备副本** removes that recording from this browser's saved storage, not from the server. An already loaded recording may remain in memory until you close/reload the page. Browser HTTP caches are managed separately; clearing the site's data removes all browser copies. Ordinary online playback also uses private HTTP caching; versioned audio URLs change when the generated file changes. Old unversioned links revalidate instead of keeping stale recordings.
 
 This is audio caching, not a fully offline website: opening the app and fetching library/sentence metadata still requires the computer/Tailscale connection. Saved audio can continue playing in an already open page without that connection. Browsers can evict storage under pressure; private browsing may not retain it. Check the saved indicator before leaving. Download MP3 to the phone's Files/music app if you need independent offline playback or reliable OS background playback.
 
@@ -64,3 +64,8 @@ Direct mode opts into listening on all IPv4 interfaces, as LAN mode does; host c
 ## Account-aware caching in v0.4
 
 Sign in before using the library. Saved audio and editor drafts are scoped to the signed-in account; logout clears that account’s device copies on this browser. Keep the same origin and stay signed in to reuse saved audio on later visits. Audio HTTP responses now revalidate authorization with ETags; a 304 response sends no audio body. Sharing or account changes are checked before audio downloads. See [ownership and cache boundaries](LEARNING_WORKSPACE.md).
+
+
+## Multiple local interfaces
+
+Use the server's configured primary LAN address from the current `network.json`, including its port. A computer with Ethernet and Wi-Fi can have two different addresses; do not assume an older bookmark still points to the preferred interface. `127.0.0.1` and `localhost` refer to the device opening the URL, so they do not reach another computer. Verify a LAN URL from a second device; a server's request to its own address proves only local reachability. Outside the LAN, connect the client to Tailscale before using the private numeric or HTTPS address. Keep device-specific URLs in ignored local access notes.

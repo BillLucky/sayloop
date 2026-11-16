@@ -1421,14 +1421,8 @@ input[type='range'] {
     grid-template-columns: 1fr;
   }
   .settings-panel {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px 20px;
+    display: block;
     padding: 20px;
-  }
-  .settings-panel > * {
-    margin: 0 !important;
-    align-self: center;
   }
   .settings-panel .panel-bar,
   .settings-panel .divider,

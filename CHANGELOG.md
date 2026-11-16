@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.1 — 2026-11-17
+
+- Simplify phone navigation to three Chinese tabs; move studio, voices, progress, and account actions into a native More sheet.
+- Give materials and recordings one main action, with secondary operations in accessible action sheets. Group filters, audio settings, and device saving; add a collapsible player.
+- Refine button hierarchy, touch targets, reading space, safe-area spacing, and player/navigation separation at narrow widths.
+- Pause hidden-page polling, reduce idle refreshes, and omit partial authoring payloads from HTTP status responses while keeping them persisted.
+- Preserve dialogue roles, the second voice, and the correct language through title edits and draft reloads.
+- Refresh synthetic screenshots, navigation guidance, and responsive/keyboard/cache regression coverage.
+
 ## 0.4.0 — 2026-11-16
 
 - Add Chinese polishing, language/person/style variants, iterative authoring history, and batched scenario dialogues with a primary-model/local-Ollama fallback chain.

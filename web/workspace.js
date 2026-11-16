@@ -77,7 +77,7 @@ export async function authenticate(helpers) {
   }
   state.user = user;
   setAudioUser(user.id);
-  $('#profile-name').textContent = user.display_name;
+  $('#profile-name').textContent = $('#mobile-profile-name').textContent = user.display_name;
   $('#auth-screen').hidden = true;
   document.body.classList.remove('auth-pending');
   $('#mobile-logout').onclick = () => $('#logout').click();
@@ -162,7 +162,7 @@ function readResult() {
 }
 function renderResult(result) {
   const chinese = result.chinese
-    ? `<article class="panel result-card"><h2>中文定稿</h2><label for="result-chinese">你可以直接修改，再继续打磨或生成表达</label><textarea id="result-chinese" rows="10" maxlength="12000">${escape(result.chinese)}</textarea><div class="result-actions"><button class="button primary" data-use-chinese>以这版中文生成表达</button><button class="text-button" data-refine-chinese>继续打磨中文</button><button class="text-button" data-save-chinese>保存中文语料</button></div></article>`
+    ? `<article class="panel result-card"><h2>中文定稿</h2><label for="result-chinese">你可以直接修改，再继续打磨或生成表达</label><textarea id="result-chinese" rows="10" maxlength="12000">${escape(result.chinese)}</textarea><div class="result-actions"><button class="button primary" data-use-chinese>以这版中文生成表达</button><details class="result-more"><summary>这版中文的其他操作</summary><button class="text-button" data-refine-chinese>继续打磨中文</button><button class="text-button" data-save-chinese>保存中文语料</button></details></div></article>`
     : '';
   const variants = result.variants
     .map(
@@ -177,7 +177,7 @@ function renderResult(result) {
     )
     .join('');
   $('#author-result').innerHTML =
-    `<div class="result-heading"><h2>${escape(result.title)}</h2><div class="result-actions"><button class="text-button" data-refine-result>按本轮要求再打磨</button><button class="text-button" data-feedback-composition>记录创作反馈</button>${result.variants.length + result.dialogues.length > 1 ? '<button id="save-all-results" class="text-button">把本版全部语料入库</button>' : ''}</div></div>${result.notes ? `<p class="result-notes">${escape(result.notes)}</p>` : ''}${chinese}${variants}${dialogues}`;
+    `<div class="result-heading"><h2>${escape(result.title)}</h2><div class="result-actions"><button class="text-button" data-refine-result>按本轮要求再打磨</button><details class="result-more"><summary>更多操作</summary><button class="text-button" data-feedback-composition>记录创作反馈</button>${result.variants.length + result.dialogues.length > 1 ? '<button id="save-all-results" class="text-button">全部语料入库</button>' : ''}</details></div></div>${result.notes ? `<p class="result-notes">${escape(result.notes)}</p>` : ''}${chinese}${variants}${dialogues}`;
 }
 function renderHistory() {
   const selected = current?.id || '';
@@ -572,7 +572,7 @@ export async function initWorkspace() {
       };
       await api('/auth/profile', jsonOptions('PATCH', data));
       Object.assign(state.user, data);
-      $('#profile-name').textContent = data.display_name;
+      $('#profile-name').textContent = $('#mobile-profile-name').textContent = data.display_name;
       await refreshProgress();
       toast('学习目标已保存。');
     } catch (error) {
@@ -626,7 +626,13 @@ export async function initWorkspace() {
   } else setMode('polish');
   let polling = false;
   setInterval(async () => {
-    if (polling || !current?.id || !['queued', 'running'].includes(current.status)) return;
+    if (
+      document.hidden ||
+      polling ||
+      !current?.id ||
+      !['queued', 'running'].includes(current.status)
+    )
+      return;
     polling = true;
     try {
       const item = await api(`/compositions/${current.id}`);

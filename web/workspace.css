@@ -652,31 +652,6 @@ button:not(:disabled):active,
   .auth-form {
     padding: 24px;
   }
-  .sidebar nav {
-    display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    width: 100%;
-    gap: 0;
-  }
-  .sidebar {
-    padding-left: 4px;
-    padding-right: 4px;
-  }
-  .nav-item {
-    padding: 8px 2px;
-    font-size: 10px;
-    min-width: 0;
-    gap: 4px;
-  }
-  .nav-item svg {
-    width: 18px;
-  }
-  .sidebar .nav-count {
-    display: none;
-  }
-  .sidebar .profile {
-    display: none;
-  }
   .topbar {
     gap: 8px;
   }
@@ -819,9 +794,6 @@ button:not(:disabled):active,
     transform: none !important;
   }
 }
-#mobile-logout {
-  display: none;
-}
 .author-input #author-source {
   height: 240px;
   min-height: 160px;
@@ -833,12 +805,6 @@ button:not(:disabled):active,
   scroll-margin-top: 110px;
 }
 @media (max-width: 700px) {
-  #mobile-logout {
-    display: inline-flex;
-    margin-left: auto;
-    font-size: 12px;
-    white-space: nowrap;
-  }
   .author-input #author-source {
     height: 190px;
   }
