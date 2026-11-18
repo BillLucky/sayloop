@@ -4,13 +4,13 @@ Sayloop now connects personal ideas to reusable learning materials: polish Chine
 
 ## Interaction decisions
 
-The main editor keeps source text and results side by side on desktop, stacked on phones. Task buttons expose Chinese polishing, expression variants, and scenario dialogues. A separate instruction field supports open-ended revision. Every submitted request creates an immutable server-side version with its source, options, parent version, progress, model attribution, and result. Editing a result is explicit; saving creates a new material snapshot.
+The main editor keeps source text and results side by side on desktop, stacked on phones. Three short task buttons expose Chinese polishing, expression variants, and scenario dialogues. The initial form shows source text and one primary action; context, instructions, person, quantity, and turn count are in an optional settings disclosure. Language and style appear when relevant. A separate instruction field supports open-ended revision. Every submitted request creates an immutable server-side version with its source, options, parent version, progress, model attribution, and result. Editing a result is explicit; saving creates a new material snapshot.
 
 This combines fixed operations and flexible instructions. It is informed by the primary study [Functional Flexibility in Generative AI Interfaces](https://arxiv.org/abs/2410.10644), whose toolbar and prompting participants switched between predefined and flexible functions. The interface choice is a design inference, not a claim that this particular workspace has been user-tested.
 
 The natural American and everyday New York presets are independent, editable prompt implementations informed by [Li Xiaolai's kick-off task](https://1000h.org/training-tasks/kick-off.html). They prioritize personal meaning, common words and phrasal verbs, natural sentence rhythm, and concise or expanded expression. They do not impersonate the author or guarantee a regional speech accent. TTS voices and language-generation style are separate controls.
 
-Chinese polishing leaves facts and uncertainty intact. Users can edit the Chinese result and explicitly use it for the next step. Expression requests support target language, person, context, and style. Scenario requests support 1–30 dialogues with 2–16 turns each. Model output must match the requested structure before it is accepted. Unknown personal facts should elicit clarification; visa and contract scenarios are language practice, not current procedural or legal advice.
+Chinese polishing leaves facts and uncertainty intact. After editing the Chinese result, “生成外语表达” submits the next request directly, keeping the selected language, style, and context while clearing the previous task’s temporary instructions. “调整语言和风格” opens configuration without submitting. Pending requests disable duplicate submission; failures keep the source and display an inline retryable error. Users can edit the Chinese result and explicitly use it for the next step. Expression requests support target language, person, context, and style. Scenario requests support 1–30 dialogues with 2–16 turns each. Model output must match the requested structure before it is accepted. Unknown personal facts should elicit clarification; visa and contract scenarios are language practice, not current procedural or legal advice.
 
 ## Models and failure handling
 
@@ -88,3 +88,13 @@ The installation uses its existing OS login service; deployment updates and rest
 ## Phone interaction update (v0.4.1)
 
 The phone has three primary tabs: materials, authoring, and practice. More opens a native action sheet for studio, voices, progress, and account actions. The library has one prominent create action, contextual card actions, and collapsible advanced filters. Audio settings and offline tools are disclosed on demand. Player settings and downloads share one sheet; hiding the player pauses it and preserves the selected recording. Keyboard focus, Escape, and backdrop dismissal follow the native dialog behavior. Role B's selected voice and dialogue metadata survive draft restoration and title-only version creation.
+
+## v0.4.2 interaction and local drafts
+
+Result textareas fit short content instead of reserving a large blank editor. Dialogue batches open the first dialogue and fold the rest; closed fields remain editable and are included in saved material snapshots. History is collapsed until needed. The empty desktop editor uses one focused column, then expands into the input/result split after submission.
+
+Account-scoped drafts are saved after a short typing delay and synchronously flushed on page exit. Corrupt or unavailable browser storage cannot prevent submission. Draft status reports actual persistence success or failure. Editing an existing dialogue also retains its role metadata and unsaved text across reloads, even without a prior model-generated version. Logout cancels delayed draft writes before clearing local data.
+
+Speech is generated on the server’s local machine. Authoring text is sent to the configured language-model service, which can be remote; the interface states this below the submit action. Private source publication and private application data remain separate.
+
+**Request recovery:** clients attach a random, account-scoped request ID and retain it for a failed response. Retrying unchanged content reuses the accepted server job; a different payload with the same key is rejected. A successful POST is the accepted revision and does not depend on a follow-up GET. History changes and polling use a selection epoch so late responses cannot overwrite another version or a new draft. Input is briefly locked while submitting its snapshot, then enabled again while generation runs.

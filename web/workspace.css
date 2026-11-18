@@ -842,3 +842,242 @@ select:focus-visible {
   outline: 3px solid #245f48;
   outline-offset: 3px;
 }
+
+/* Authoring keeps the next action visible; optional controls stay close to their task. */
+.author-input,
+.author-output {
+  scroll-margin-top: 88px;
+}
+#author-source {
+  height: 220px;
+  min-height: 160px;
+}
+.author-source-tools > .text-button {
+  padding: 8px 0 8px 12px;
+  min-height: 44px;
+}
+.author-settings {
+  margin-top: 16px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.author-settings > summary,
+.author-history > summary,
+.dialogue-result > summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 14px;
+  font-weight: 550;
+}
+.author-settings > summary::-webkit-details-marker,
+.author-history > summary::-webkit-details-marker,
+.dialogue-result > summary::-webkit-details-marker {
+  display: none;
+}
+.author-settings > summary::after,
+.author-history > summary::after,
+.dialogue-result > summary::after {
+  content: '⌄';
+  margin-left: auto;
+  color: var(--green);
+  transition: transform 0.16s;
+}
+.author-settings[open] > summary::after,
+.author-history[open] > summary::after,
+.dialogue-result[open] > summary::after {
+  transform: rotate(180deg);
+}
+#author-settings-summary,
+#revision-count,
+.dialogue-result > summary > span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+.author-settings[open] {
+  padding-bottom: 20px;
+}
+.author-submit-row {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+  text-align: center;
+}
+.author-submit-row .button {
+  margin: 0;
+  min-height: 48px;
+}
+#author-draft-status {
+  font-size: 12px;
+}
+#author-error {
+  margin-bottom: 0;
+}
+.author-history {
+  margin-bottom: 8px;
+}
+.author-history .revision-bar {
+  padding-bottom: 12px;
+}
+.author-history .revision-bar select {
+  font-size: 14px;
+}
+.author-input .prompt-source {
+  margin-top: 16px;
+  padding-top: 0;
+  border: 0;
+}
+.author-input .prompt-source summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+.result-heading {
+  margin: 16px 0;
+}
+.result-heading h2 {
+  margin: 0;
+}
+.result-card textarea {
+  min-height: 96px;
+  max-height: 480px;
+}
+.result-chinese-reference {
+  margin: 16px 0;
+  padding: 0 16px;
+  border-left: 2px solid var(--line);
+}
+.result-chinese-reference summary {
+  min-height: 44px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+.result-chinese-reference[open] {
+  padding-bottom: 16px;
+}
+.result-chinese-reference textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  font: inherit;
+}
+.dialogue-result > summary {
+  font-size: 16px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.dialogue-result > summary > span {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.dialogue-result:not([open]) {
+  padding-block: 12px;
+}
+.dialogue-body > .button {
+  margin-top: 20px;
+}
+#author-submit.is-pending::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  border: 2px solid #ffffff60;
+  border-top-color: white;
+  border-radius: 50%;
+  animation: author-pending 0.8s linear infinite;
+}
+@keyframes author-pending {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (max-width: 700px) {
+  #view-authoring > .page-heading {
+    margin-bottom: 16px;
+    align-items: start;
+  }
+  #view-authoring .page-heading p {
+    margin-bottom: 0;
+  }
+  .author-input {
+    padding: 18px;
+  }
+  .author-modes {
+    border-radius: 10px;
+  }
+  .author-modes button {
+    border-radius: 7px;
+    white-space: nowrap;
+    font-size: 13px;
+    min-height: 46px;
+  }
+  #author-source {
+    height: 176px;
+    padding: 12px;
+  }
+  .author-source-tools {
+    margin: 0;
+  }
+  .author-settings {
+    margin-top: 8px;
+  }
+  .author-submit-row {
+    margin-top: 16px;
+  }
+  .authoring-layout {
+    gap: 20px;
+  }
+  .author-options {
+    gap: 0 12px;
+  }
+  #author-expression-options {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .result-empty {
+    min-height: 180px;
+    padding: 24px;
+  }
+  .result-card {
+    padding: 18px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .author-settings > summary::after,
+  .author-history > summary::after,
+  .dialogue-result > summary::after {
+    transition: none;
+  }
+  #author-submit.is-pending::before {
+    animation: none;
+  }
+}
+
+/* A blank result column does not reserve half the desktop before the first request. */
+#view-authoring.is-starting {
+  max-width: 760px;
+  margin-inline: auto;
+}
+.is-starting .authoring-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+#author-submit {
+  scroll-margin-bottom: 220px;
+}
+.author-model-note {
+  font-size: 12px;
+  margin: 6px 0 0;
+  text-align: center;
+}
+.author-fields {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}

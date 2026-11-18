@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { goToView } from './helpers.js';
+import { goToView, openAuthorSettings } from './helpers.js';
 
 const user = {
   id: 'synthetic-user',
@@ -127,7 +127,8 @@ test('polish, edit, generate expressions, and save without losing versions', asy
   await page.locator('#author-submit').click();
   await expect(page.locator('#result-chinese')).toHaveValue(chinese);
   await page.locator('#result-chinese').fill(chinese + '原有价格不变。');
-  await page.locator('[data-use-chinese]').click();
+  await page.locator('.result-card .result-more > summary').click();
+  await page.locator('[data-expression-settings]').click();
   await expect(page.locator('#author-source')).toHaveValue(chinese + '原有价格不变。');
   await page.locator('#author-style').selectOption('new_york');
   await page.locator('#author-submit').click();
@@ -158,6 +159,7 @@ test('scenario roles retain editable translations and separate voices', async ({
 }, testInfo) => {
   await page.locator('[data-author-mode="scenario"]').click();
   await page.locator('#author-source').fill('演练合同交付谈判，双方分别是采购方和供应商。');
+  await openAuthorSettings(page);
   await page.locator('#author-count').fill('1');
   await page.locator('#author-submit').click();
   await expect(page.locator('#turn-0-0')).toHaveValue(dialogue.turns[0].text);
@@ -216,6 +218,7 @@ test('dialogue settings survive title edits and reload without losing role voice
 }) => {
   await page.locator('[data-author-mode="scenario"]').click();
   await page.locator('#author-source').fill('供应商与采购方的交付谈判');
+  await openAuthorSettings(page);
   await page.locator('#author-count').fill('1');
   await page.locator('#author-submit').click();
   await page.locator('[data-save-dialogue="0"]').click();
@@ -233,4 +236,443 @@ test('dialogue settings survive title edits and reload without losing role voice
   await expect(page.locator('#voice-b-row')).toBeVisible();
   await expect(page.locator('#voice-b')).toHaveValue('am_fenrir');
   await expect(page.locator('#material-title')).toHaveValue('交付谈判 · 修改标题');
+});
+
+test('authoring starts compact and the primary phone action fits above navigation', async ({
+  page,
+}, testInfo) => {
+  await expect(page.locator('#author-context')).toBeHidden();
+  await expect(page.locator('#author-instructions')).toBeHidden();
+  await expect(page.locator('#author-expression-options')).toBeHidden();
+  await expect(page.locator('#author-output')).toBeHidden();
+  await expect(page.locator('#author-submit')).toHaveText('润色中文');
+  if (testInfo.project.name === 'mobile') {
+    const button = await page.locator('#author-submit').boundingBox();
+    const navigation = await page.locator('.mobile-navigation').boundingBox();
+    expect(button.y).toBeGreaterThan(0);
+    expect(button.y + button.height).toBeLessThan(navigation.y);
+  }
+  await page.screenshot({
+    path: `data/validation/ui-0.4.2/author-start-${testInfo.project.name}.png`,
+    fullPage: true,
+  });
+});
+
+test('confirmed Chinese generates expressions directly with the edited meaning', async ({
+  page,
+}) => {
+  await page.locator('#author-source').fill('交付需要多两周。');
+  await page.locator('#author-submit').click();
+  await page.locator('#result-chinese').fill('我们希望延后两周，完成质量验证。');
+  const submitted = page.waitForRequest(
+    (request) => request.url().endsWith('/api/compositions') && request.method() === 'POST'
+  );
+  await page.locator('[data-use-chinese]').click();
+  const body = (await submitted).postDataJSON();
+  expect(body.mode).toBe('variants');
+  expect(body.source).toBe('我们希望延后两周，完成质量验证。');
+  expect(body.parent_id).toHaveLength(32);
+  await expect(page.locator('#variant-0')).toBeVisible();
+  await expect(page.locator('#revision-select option')).toHaveCount(3);
+});
+
+test('pending submission prevents duplicate requests and recovers after completion', async ({
+  page,
+}) => {
+  let posts = 0;
+  let complete = false;
+  const item = {
+    id: 'c'.repeat(32),
+    input: {
+      mode: 'polish',
+      source: '需要确认交付时间。',
+      language: 'a',
+      style: 'spoken',
+      person: 'first',
+      count: 3,
+      turns: 6,
+      context: '',
+      instructions: '',
+    },
+    created_at: '2026-01-01T00:00:00Z',
+    status: 'running',
+    progress: 0,
+  };
+  await page.route('**/api/compositions', async (route) => {
+    if (route.request().method() !== 'POST') return route.fulfill({ json: [item] });
+    posts += 1;
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    await route.fulfill({ status: 202, json: item });
+  });
+  await page.route('**/api/compositions/*', (route) =>
+    route.fulfill({
+      json: complete
+        ? {
+            ...item,
+            status: 'completed',
+            result: { title: '确认计划', chinese, variants: [], dialogues: [], notes: '' },
+          }
+        : item,
+    })
+  );
+  await page.locator('#author-source').fill(item.input.source);
+  await page.evaluate(() => {
+    document.querySelector('#author-form').requestSubmit();
+    document.querySelector('#author-form').requestSubmit();
+  });
+  await expect(page.locator('#author-submit')).toBeDisabled();
+  await expect(page.locator('#author-submit')).toHaveText('正在生成…');
+  await page.evaluate(() => document.querySelector('#author-form').requestSubmit());
+  expect(posts).toBe(1);
+  complete = true;
+  await expect(page.locator('#result-chinese')).toHaveValue(chinese, { timeout: 6000 });
+  await expect(page.locator('#author-submit')).toBeEnabled();
+  expect(posts).toBe(1);
+});
+
+test('a failed request keeps the source and offers an inline retry', async ({ page }) => {
+  let rejected = false;
+  await page.route('**/api/compositions', async (route) => {
+    if (route.request().method() !== 'POST' || rejected) return route.fallback();
+    rejected = true;
+    await route.fulfill({ status: 503, json: { detail: '模型暂不可用，请稍后重试。' } });
+  });
+  await page.locator('#author-source').fill('请确认下周的时间。');
+  await page.locator('#author-submit').click();
+  await expect(page.locator('#author-error')).toHaveText('模型暂不可用，请稍后重试。');
+  await expect(page.locator('#author-source')).toHaveValue('请确认下周的时间。');
+  await page.locator('#author-submit').click();
+  await expect(page.locator('#result-chinese')).toHaveValue(chinese);
+  await expect(page.locator('#author-error')).toBeHidden();
+});
+
+test('corrupted or unavailable browser draft storage does not break authoring', async ({
+  page,
+}) => {
+  await page.addInitScript(() =>
+    localStorage.setItem('sayloop-authoring-synthetic-user', '{invalid')
+  );
+  await page.reload();
+  await expect(page.locator('#author-submit')).toBeVisible();
+  await expect(page.locator('#author-draft-status')).toContainText('无法恢复');
+  await page.evaluate(() => {
+    const setItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+      if (key.startsWith('sayloop-authoring-'))
+        throw new DOMException('Storage unavailable', 'QuotaExceededError');
+      return setItem.call(this, key, value);
+    };
+  });
+  await page.locator('#author-source').fill('草稿存储不可用时也可以提交。');
+  await expect(page.locator('#author-draft-status')).toContainText('无法保存');
+  await page.locator('#author-submit').click();
+  await expect(page.locator('#result-chinese')).toHaveValue(chinese);
+});
+
+test('refining opens optional instructions and keeps the current result intact', async ({
+  page,
+}) => {
+  await page.locator('#author-source').fill('需要更清楚的中文。');
+  await page.locator('#author-submit').click();
+  await expect(page.locator('#result-chinese')).toHaveValue(chinese);
+  await page.locator('[data-refine-result]').click();
+  await expect(page.locator('#author-settings')).toHaveAttribute('open', '');
+  await expect(page.locator('#author-instructions')).toBeFocused();
+  await expect(page.locator('#result-chinese')).toHaveValue(chinese);
+});
+
+test('editing an existing dialogue without authoring history survives a reload', async ({
+  page,
+}) => {
+  await page.evaluate(async () => {
+    await fetch('/api/materials', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: 'Existing dialogue',
+        language: 'a',
+        text: 'Hello. Welcome.',
+        role_a: '旅客',
+        role_b: '工作人员',
+        turns: [
+          { speaker: 'A', text: 'Hello.', translation: '你好。' },
+          { speaker: 'B', text: 'Welcome.', translation: '欢迎。' },
+        ],
+      }),
+    });
+  });
+  await page.reload();
+  await goToView(page, 'library');
+  await page.locator('[data-open]').first().click();
+  await page.locator('#edit-dialogue').click();
+  await expect(page.locator('#turn-0-0')).toBeVisible();
+  await page.locator('#turn-0-0').fill('Good morning.');
+  await page.reload();
+  await expect(page.locator('#turn-0-0')).toHaveValue('Good morning.');
+  await expect(page.locator('#role-a-0')).toHaveValue('旅客');
+  const saved = page.waitForRequest(
+    (request) => request.url().endsWith('/api/materials') && request.method() === 'POST'
+  );
+  await page.locator('[data-save-dialogue="0"]').click();
+  expect((await saved).postDataJSON().tags.every((tag) => typeof tag === 'string')).toBe(true);
+  await expect(page.locator('#view-studio')).toBeVisible();
+});
+
+test('dialogue batches fold and hidden edits are included when saving', async ({ page }) => {
+  const item = {
+    id: 'd'.repeat(32),
+    input: {
+      mode: 'scenario',
+      source: '旅行对话。',
+      language: 'a',
+      style: 'spoken',
+      person: 'first',
+      count: 3,
+      turns: 2,
+      context: '',
+      instructions: '',
+    },
+    created_at: '2026-01-01T00:00:00Z',
+    status: 'completed',
+    result: {
+      title: '旅行对话',
+      chinese: '',
+      variants: [],
+      dialogues: [0, 1, 2].map((index) => ({ ...dialogue, title: `旅行对话 ${index + 1}` })),
+      notes: '',
+    },
+  };
+  await page.route('**/api/compositions', (route) =>
+    route.fulfill({
+      status: route.request().method() === 'POST' ? 202 : 200,
+      json: route.request().method() === 'POST' ? item : [item],
+    })
+  );
+  await page.route('**/api/compositions/*', (route) => route.fulfill({ json: item }));
+  await page.locator('[data-author-mode="scenario"]').click();
+  await page.locator('#author-source').fill(item.input.source);
+  await page.locator('#author-submit').click();
+  await expect(page.locator('.dialogue-result')).toHaveCount(3);
+  await expect(page.locator('.dialogue-result').nth(0)).toHaveAttribute('open', '');
+  await expect(page.locator('.dialogue-result').nth(2)).not.toHaveAttribute('open', '');
+  await page.locator('.dialogue-result').nth(2).locator('summary').click();
+  await page.locator('#turn-2-0').fill('Could we change the time?');
+  const saved = page.waitForRequest(
+    (request) => request.url().endsWith('/api/materials') && request.method() === 'POST'
+  );
+  await page.locator('[data-save-dialogue="2"]').click();
+  expect((await saved).postDataJSON().turns[0].text).toBe('Could we change the time?');
+});
+
+test('authoring stays usable at narrow phone and tablet widths', async ({ page }, testInfo) => {
+  for (const width of [320, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.locator('[data-author-mode="variants"]').click();
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
+      .toBe(true);
+    const size = await page.locator('#author-submit').boundingBox();
+    expect(size.height).toBeGreaterThanOrEqual(44);
+    await page.screenshot({
+      path: `data/validation/ui-0.4.2/author-${width}-${testInfo.project.name}.png`,
+      fullPage: true,
+    });
+  }
+});
+
+const pendingRevision = () => ({
+  id: 'e'.repeat(32),
+  input: {
+    mode: 'polish',
+    source: '已经提交的原文。',
+    style: 'spoken',
+    language: 'a',
+    person: 'first',
+    context: '',
+    instructions: '',
+    count: 3,
+    turns: 6,
+  },
+  status: 'running',
+  progress: 0,
+  created_at: '2026-01-01T00:00:00Z',
+});
+const finishedRevision = (item) => ({
+  ...item,
+  status: 'completed',
+  result: { title: '原版本', chinese: '旧请求的结果。', variants: [], dialogues: [], notes: '' },
+});
+
+test('an accepted request stays pending when status reads fail without creating another job', async ({
+  page,
+}) => {
+  const item = pendingRevision();
+  let posts = 0;
+  await page.route('**/api/compositions', (route) => {
+    if (route.request().method() === 'POST') {
+      posts++;
+      return route.fulfill({ status: 202, json: item });
+    }
+    return route.fulfill({ json: [item] });
+  });
+  await page.route('**/api/compositions/*', (route) =>
+    route.fulfill({ status: 503, json: { detail: '暂时无法读取' } })
+  );
+  await page.locator('#author-source').fill(item.input.source);
+  await page.locator('#author-submit').click();
+  await expect(page.locator('#author-status')).toContainText('正在重连', { timeout: 6000 });
+  await page.evaluate(() => document.querySelector('#author-form').requestSubmit());
+  await expect(page.locator('#author-submit')).toBeDisabled();
+  expect(posts).toBe(1);
+});
+
+test('late polling cannot replace a new idea or recreate the previous selection', async ({
+  page,
+}) => {
+  const item = pendingRevision();
+  let release;
+  await page.route('**/api/compositions', (route) =>
+    route.fulfill({
+      status: route.request().method() === 'POST' ? 202 : 200,
+      json: route.request().method() === 'POST' ? item : [item],
+    })
+  );
+  await page.route('**/api/compositions/*', async (route) => {
+    await new Promise((resolve) => {
+      release = resolve;
+    });
+    await route.fulfill({ json: finishedRevision(item) });
+  });
+  await page.locator('#author-source').fill(item.input.source);
+  await page.locator('#author-submit').click();
+  await expect.poll(() => Boolean(release), { timeout: 6000 }).toBe(true);
+  await page.locator('#new-composition').click();
+  await page.locator('#author-source').fill('这是新的想法。');
+  release();
+  await page.waitForTimeout(350);
+  await expect(page.locator('#author-source')).toHaveValue('这是新的想法。');
+  await expect(page.locator('#result-chinese')).toHaveCount(0);
+  const draft = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem('sayloop-authoring-synthetic-user'))
+  );
+  expect(draft.current).toBeUndefined();
+});
+
+test('late history responses cannot overwrite a more recent selection and its edits', async ({
+  page,
+}) => {
+  await page.locator('#author-source').fill('第一个版本。');
+  await page.locator('#author-submit').click();
+  await expect(page.locator('#result-chinese')).toBeVisible();
+  await page.locator('#author-source').fill('第二个版本。');
+  await page.locator('#author-submit').click();
+  await expect(page.locator('#revision-select option')).toHaveCount(3);
+  const ids = await page
+    .locator('#revision-select option')
+    .evaluateAll((elements) => elements.map((e) => e.value).filter(Boolean));
+  let release;
+  await page.route(`**/api/compositions/${ids[1]}`, async (route) => {
+    await new Promise((resolve) => {
+      release = resolve;
+    });
+    return route.fallback();
+  });
+  await page.locator('#author-history > summary').click();
+  await page.locator('#revision-select').selectOption(ids[1]);
+  await expect.poll(() => Boolean(release)).toBe(true);
+  await page.locator('#revision-select').selectOption(ids[0]);
+  await page.locator('#result-chinese').fill('第二版的最新修改。');
+  release();
+  await page.waitForTimeout(350);
+  await expect(page.locator('#result-chinese')).toHaveValue('第二版的最新修改。');
+  await expect(page.locator('#revision-select')).toHaveValue(ids[0]);
+});
+
+test('submission briefly locks editable fields until the server accepts their snapshot', async ({
+  page,
+}) => {
+  let release;
+  const item = pendingRevision();
+  await page.route('**/api/compositions', async (route) => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    await new Promise((resolve) => {
+      release = resolve;
+    });
+    return route.fulfill({ status: 202, json: finishedRevision(item) });
+  });
+  await page.locator('#author-source').fill(item.input.source);
+  await page.locator('#author-submit').click();
+  await expect(page.locator('#author-source')).toBeDisabled();
+  await expect(page.locator('[data-author-mode="scenario"]')).toBeDisabled();
+  release();
+  await expect(page.locator('#author-source')).toBeEnabled();
+  await expect(page.locator('#author-source')).toHaveValue(item.input.source);
+});
+
+test('a network retry after reload uses the same per-request id', async ({ page }) => {
+  const keys = [];
+  const item = pendingRevision();
+  await page.route('**/api/compositions', (route) => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    keys.push(route.request().postDataJSON().request_id);
+    if (keys.length === 1) return route.abort('failed');
+    return route.fulfill({ status: 202, json: finishedRevision(item) });
+  });
+  await page.locator('#author-source').fill(item.input.source);
+  await page.locator('#author-submit').click();
+  await expect(page.locator('#author-error')).toBeVisible();
+  await page.reload();
+  await page.locator('#author-submit').click();
+  await expect(page.locator('#result-chinese')).toBeVisible();
+  expect(keys).toHaveLength(2);
+  expect(keys[0]).toMatch(/^[a-f0-9]{32}$/);
+  expect(keys[1]).toBe(keys[0]);
+});
+
+test('logout still clears drafts when device audio storage rejects cleanup', async ({
+  page,
+}, testInfo) => {
+  await page.locator('#author-source').fill('用于验证退出清理的合成草稿。');
+  await expect(page.locator('#author-draft-status')).toContainText('已保存');
+  await page.evaluate(() => {
+    indexedDB.open = () => {
+      throw new DOMException('Denied', 'SecurityError');
+    };
+  });
+  if (testInfo.project.name === 'mobile') {
+    await page.locator('#more-tools').click();
+    await page.locator('#mobile-logout').click();
+  } else await page.locator('#logout').click();
+  await expect(page.locator('#auth-screen')).toBeVisible();
+  expect(
+    await page.evaluate(() => localStorage.getItem('sayloop-authoring-synthetic-user'))
+  ).toBeNull();
+  await expect(page.locator('#auth-error')).toContainText('缓存');
+});
+
+test('history loading protects the current editor until replacement is ready', async ({ page }) => {
+  await page.locator('#author-source').fill('第一个版本。');
+  await page.locator('#author-submit').click();
+  await expect(page.locator('#result-chinese')).toBeVisible();
+  await page.locator('#author-source').fill('第二个版本。');
+  await page.locator('#author-submit').click();
+  await expect(page.locator('#revision-select option')).toHaveCount(3);
+  const ids = await page
+    .locator('#revision-select option')
+    .evaluateAll((elements) => elements.map((e) => e.value).filter(Boolean));
+  let release;
+  await page.route(`**/api/compositions/${ids[1]}`, async (route) => {
+    await new Promise((resolve) => {
+      release = resolve;
+    });
+    return route.fallback();
+  });
+  await page.locator('#author-history > summary').click();
+  await page.locator('#revision-select').selectOption(ids[1]);
+  await expect(page.locator('#author-source')).toBeDisabled();
+  await expect(page.locator('#author-result')).toHaveAttribute('inert', '');
+  release();
+  await expect(page.locator('#author-result')).not.toHaveAttribute('inert', '');
+  await expect(page.locator('#author-source')).toBeEnabled();
+  await expect(page.locator('#revision-select')).toHaveValue(ids[1]);
 });

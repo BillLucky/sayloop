@@ -63,3 +63,11 @@ Use `scripts/network.py --tailscale` with the project Python to configure privat
 ## Accounts and authoring configuration
 
 See [the workspace guide](LEARNING_WORKSPACE.md) for first owner login, invitation codes, password recovery, model configuration, queue behavior, and backup requirements. Deployment smoke checks now require `--password-file` pointing to the private owner-login file or a plain password file. Never pass passwords on the command line or publish that file.
+
+## Mobile workspace release checks
+
+**Use an isolated working copy for interface changes.** FastAPI serves browser files directly from disk, so changing the production checkout can expose an unfinished interface before restarting Python. Test with synthetic accounts in a separate data directory; reuse installed model weights with an explicit model folder rather than copying personal data or downloading weights again.
+
+**Publish source separately from private operation records.** The local pre-commit hook and CI check the Git index snapshot, pinned formatting tools, known private-address/credential patterns, and reviewed image revisions. Run `npm run hooks:install` after installing development dependencies with scripts disabled. Keep real access addresses, credentials, personal screenshots, project feedback and release evidence in ignored project data.
+
+**Deploy only when both queues are idle.** Verify the intended commit and tree, data paths, original material/audio hashes, and existing service configuration. After restarting the managed service, confirm health/version, the runtime commit record, configured access paths, and authenticated denial for private API content. A healthy process restart does not certify a full machine reboot or a physical phone.

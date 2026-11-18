@@ -31,7 +31,8 @@ def clone(tmp_path):
         target = seed / name
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(ROOT / name, target)
-    (seed / "package.json").write_text(json.dumps({"devDependencies": {"prettier": "3.5.3"}}))
+    prettier = json.loads((ROOT / "package.json").read_text())["devDependencies"]["prettier"]
+    (seed / "package.json").write_text(json.dumps({"devDependencies": {"prettier": prettier}}))
     (seed / "web").mkdir()
     (seed / "web/sample.js").write_text("export const value = 1;\n")
     git(seed, "init", "-q")

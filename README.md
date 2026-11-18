@@ -46,6 +46,8 @@ Screenshots use synthetic demonstration text, never personal learning materials.
 Verified in Chrome mobile emulation; physical iOS/Android devices are not yet acceptance-tested.
 </details>
 
+Speech synthesis runs locally. Authoring sends submitted text to the language-model service you configure; inspect that configuration before using personal content. Credentials, local settings, and learning records are excluded from source distribution.
+
 ## Run locally
 
 Tested on Apple Silicon with Python 3.11. Install [uv](https://docs.astral.sh/uv/) and FFmpeg first (`brew install ffmpeg` on macOS).

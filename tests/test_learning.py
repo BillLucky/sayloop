@@ -464,3 +464,37 @@ def test_shared_material_does_not_disclose_another_learners_recordings(client, m
     owner_login(client)
     assert client.get("/api/generations/" + new_job["id"]).status_code == 404
     assert client.get(own_recording["audio_url"]).status_code == 404
+
+
+def test_authoring_retry_key_reuses_the_accepted_job(client, monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        compositions.executor, "submit", lambda fn, identifier: calls.append(identifier)
+    )
+    body = dict(mode="polish", source="需要确认交付时间。", request_id="a" * 32)
+    first = client.post("/api/compositions", json=body)
+    second = client.post("/api/compositions", json=body)
+    assert first.status_code == second.status_code == 202
+    assert first.json()["id"] == second.json()["id"]
+    assert len(calls) == 1
+    assert len(client.get("/api/compositions").json()) == 1
+    conflict = client.post("/api/compositions", json={**body, "source": "不同的内容。"})
+    assert conflict.status_code == 409
+    assert len(calls) == 1
+
+
+def test_authoring_retry_keys_are_scoped_to_the_authenticated_account(client, monkeypatch):
+    monkeypatch.setattr(compositions.executor, "submit", lambda *args: None)
+    body = dict(mode="polish", source="共同的合成测试。", request_id="b" * 32)
+    first = client.post("/api/compositions", json=body).json()
+    switch_user(client)
+    second = client.post("/api/compositions", json=body).json()
+    assert first["id"] != second["id"]
+    assert client.get("/api/compositions/" + first["id"]).status_code == 404
+
+
+def test_invalid_authoring_retry_key_is_rejected(client):
+    response = client.post(
+        "/api/compositions", json=dict(mode="polish", source="合成文本。", request_id="not-an-id")
+    )
+    assert response.status_code == 422

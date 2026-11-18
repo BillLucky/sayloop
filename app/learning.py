@@ -131,7 +131,10 @@ def create_composition(item: compositions.CompositionInput, request: Request):
     if item.parent_id:
         get_composition(item.parent_id, request)
     try:
-        return compositions.submit(item, request.state.user["id"])
+        accepted = compositions.submit(item, request.state.user["id"])
+        return {key: value for key, value in accepted.items() if key != "partial_result"}
+    except compositions.RequestConflict as error:
+        raise HTTPException(409, str(error)) from error
     except ValueError as error:
         raise HTTPException(429, str(error)) from error
 

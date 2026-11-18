@@ -58,3 +58,11 @@ Verified synthetic API/browser flows, real primary and local model inference, th
 ## 2026-11-17 · Mobile workspace refinement
 
 Replaced the dense phone menu with three short primary tabs and a native More sheet. Unified Chinese labels and button hierarchy, grouped secondary library/recording/player actions, simplified voice settings, and protected content from fixed player/tab overlap. Added draft recovery for role-specific voices and title-edited dialogues. Hidden tabs stop polling; foreground return refreshes immediately. Responsive, modal-focus, keyboard, account/cache, and real-audio checks are recorded in VALIDATION.md. Private access configuration and user data remain separate from source.
+
+## 2026-11-19 · Focused mobile authoring and staged privacy checks
+
+**Simplified the working flow.** Authoring starts with text and a single action; optional settings and history open on demand. Confirmed Chinese can generate expressions directly. Pending/error states, fitted editors, folded dialogue batches, and account-scoped draft recovery reduce repeated actions and scrolling.
+
+**Strengthened public-source boundaries.** Added index-based commit checks, version-locked formatting, exact reviewed-image blobs, private address/configuration detection, and real fresh-clone commit regressions. Corrected outdated local-only/account wording and kept the interface explicit about configured model-service submissions. No dependencies, model routing, global network settings, or personal media were added to source.
+
+**Verified in isolation.** Synthetic desktop/phone flows and the real model-to-preview chain ran in a separate working copy and data directory. Release evidence and project feedback remain local; public documentation contains feature and validation summaries only.

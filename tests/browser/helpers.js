@@ -11,3 +11,9 @@ export async function openPracticeTools(page) {
   if (!(await page.locator('#practice-tools').evaluate((element) => element.open)))
     await page.locator('#practice-tools > summary').click();
 }
+
+export async function openAuthorSettings(page) {
+  if (!(await page.locator('#author-settings').evaluate((element) => element.open))) {
+    await page.locator('#author-settings > summary').click();
+  }
+}

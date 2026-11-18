@@ -98,6 +98,11 @@ class CompositionInput(BaseModel):
     count: int = Field(default=3, ge=1, le=30)
     turns: int = Field(default=6, ge=2, le=16)
     parent_id: str | None = None
+    request_id: str | None = Field(default=None, pattern="^[a-f0-9]{32}$")
+
+
+class RequestConflict(ValueError):
+    """A retry key must never silently refer to different content."""
 
 
 def providers():
@@ -330,6 +335,20 @@ def run(identifier):
 def submit(spec, user_id):
     with lock:
         items = [read_json(p) for p in (config.DATA / "compositions").glob("*.json")]
+        if spec.request_id:
+            previous = next(
+                (
+                    item
+                    for item in items
+                    if item["owner_id"] == user_id
+                    and item["input"].get("request_id") == spec.request_id
+                ),
+                None,
+            )
+            if previous:
+                if previous["input"] != spec.model_dump():
+                    raise RequestConflict("请求编号对应的内容已改变，请重新提交。")
+                return previous
         active = [item for item in items if item["status"] in ("queued", "running")]
         if len(active) >= 8 or sum(item["owner_id"] == user_id for item in active) >= 2:
             raise ValueError("创作队列已满，请等当前任务完成。")

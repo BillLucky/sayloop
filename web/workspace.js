@@ -30,12 +30,30 @@ let studySession,
   lastTick = 0,
   eventInFlight = false;
 let pendingStudy;
+let submitting = false;
+let revisionEpoch = 0;
+let loadingRevision = false;
+let pendingSubmission;
+let draftTimer;
+let draftsEnabled = true;
+const activeComposition = () => ['queued', 'running'].includes(current?.status);
+const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const actionLabels = { polish: '润色中文', variants: '生成外语表达', scenario: '生成场景对话' };
 const draftKey = () => `sayloop-authoring-${state.user.id}`;
 
 export async function authenticate(helpers) {
   ({ api, post, state, toast, showView, openMaterial, refreshViews } = helpers);
   let user = (await api('/auth/me')).user;
   if (!user) {
+    try {
+      if (sessionStorage.getItem('sayloop-cleanup-warning')) {
+        $('#auth-error').textContent =
+          '已退出账号，但设备缓存未能全部清理。共享设备请清除浏览器站点数据。';
+        sessionStorage.removeItem('sayloop-cleanup-warning');
+      }
+    } catch {
+      /* Login must remain available without browser storage. */
+    }
     let registering = false;
     $('#auth-switch').onclick = () => {
       registering = !registering;
@@ -85,19 +103,66 @@ export async function authenticate(helpers) {
     document.querySelector('#audio').pause();
     try {
       await post('/auth/logout', {});
-      await clearUserAudio();
-      localStorage.removeItem(draftKey());
-      localStorage.removeItem(`llh-draft-${user.id}`);
-    } finally {
-      location.reload();
+    } catch {
+      toast('退出未完成，请检查连接后重试。', true);
+      return;
     }
+    draftsEnabled = false;
+    revisionEpoch += 1;
+    clearTimeout(draftTimer);
+    let cleanupFailed = false;
+    try {
+      await clearUserAudio();
+    } catch {
+      cleanupFailed = true;
+    }
+    for (const key of [draftKey(), `llh-draft-${user.id}`]) {
+      try {
+        localStorage.removeItem(key);
+      } catch {
+        cleanupFailed = true;
+      }
+    }
+    if (cleanupFailed) {
+      try {
+        sessionStorage.setItem('sayloop-cleanup-warning', '1');
+      } catch {
+        /* Storage can be denied. */
+      }
+    }
+    location.reload();
   };
 }
 
-function remember() {
-  dirty = true;
-  $('#source-count').textContent =
-    `${$('#author-source').value.length.toLocaleString()} / 12,000 字`;
+function updateAuthorControls() {
+  const locked = submitting || loadingRevision;
+  const pending = locked || activeComposition();
+  $('#author-fields').disabled = locked;
+  $('#author-result').inert = locked;
+  const submit = $('#author-submit');
+  submit.disabled = pending;
+  submit.textContent = submitting
+    ? '正在提交…'
+    : loadingRevision
+      ? '正在打开版本…'
+      : activeComposition()
+        ? '正在生成…'
+        : actionLabels[mode];
+  submit.classList.toggle('is-pending', pending);
+  $('#new-composition').disabled = submitting;
+  $('#revision-select').disabled = submitting;
+  $('#author-extra-options').hidden = mode === 'polish';
+  $('#author-settings-summary').textContent =
+    mode === 'polish'
+      ? '场合 · 修改要求'
+      : mode === 'scenario'
+        ? `${$('#author-count').value || 3} 组 · 每组 ${$('#author-turns').value || 6} 轮`
+        : `${$('#author-count').value || 3} 种表达 · 可调整人称`;
+}
+
+function persistDraft() {
+  clearTimeout(draftTimer);
+  if (!draftsEnabled) return;
   try {
     localStorage.setItem(
       draftKey(),
@@ -113,35 +178,171 @@ function remember() {
         turns: $('#author-turns').value,
         current: current?.id,
         result: readResult(),
+        inlineInput: current && !current.id ? current.input : undefined,
+        inlineTags: current?.tags,
+        pendingSubmission,
       })
     );
-  } catch {}
+    $('#author-draft-status').textContent = '草稿已保存在此浏览器';
+  } catch {
+    $('#author-draft-status').textContent = '此浏览器无法保存草稿，请复制重要内容';
+  }
 }
+
+function validDraftResult(result) {
+  const text = (value) => typeof value === 'string';
+  const turn = (value) =>
+    value &&
+    ['A', 'B'].includes(value.speaker) &&
+    text(value.text) &&
+    (value.translation === undefined || text(value.translation));
+  return (
+    result &&
+    text(result.title) &&
+    Array.isArray(result.variants) &&
+    result.variants.every((value) => value && text(value.label) && text(value.text)) &&
+    Array.isArray(result.dialogues) &&
+    result.dialogues.every(
+      (value) =>
+        value &&
+        text(value.title) &&
+        text(value.role_a) &&
+        text(value.role_b) &&
+        Array.isArray(value.turns) &&
+        value.turns.every(turn)
+    )
+  );
+}
+
+function loadDraft() {
+  try {
+    const draft = JSON.parse(localStorage.getItem(draftKey()) || 'null');
+    if (!draft || typeof draft.source !== 'string') return null;
+    if (draft.result && !validDraftResult(draft.result)) delete draft.result;
+    return draft;
+  } catch {
+    $('#author-draft-status').textContent = '本地草稿无法恢复，已保留服务器上的历史版本';
+    return null;
+  }
+}
+
+function remember(event) {
+  dirty = true;
+  $('#author-source').setCustomValidity('');
+  $('#source-count').textContent =
+    `${$('#author-source').value.length.toLocaleString()} / 12,000 字`;
+  $('#author-draft-status').textContent = '正在保存草稿…';
+  if (event?.target.matches('#author-result textarea')) fitField(event.target);
+  updateAuthorControls();
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(persistDraft, 200);
+}
+
+function fitField(field) {
+  field.style.height = 'auto';
+  field.style.height = `${Math.min(480, Math.max(96, field.scrollHeight + 2))}px`;
+}
+
+function fitResults() {
+  $('#author-result')
+    .querySelectorAll('textarea')
+    .forEach((field) => {
+      if (field.getClientRects().length) fitField(field);
+    });
+}
+
+function showAuthorInput({ instructions = false } = {}) {
+  if (instructions) $('#author-settings').open = true;
+  $('#author-form').scrollIntoView({
+    block: 'start',
+    behavior: reducedMotion() ? 'instant' : 'smooth',
+  });
+  (instructions ? $('#author-instructions') : $('#author-source')).focus({ preventScroll: true });
+}
+
 function setMode(value) {
   mode = value;
-  document
-    .querySelectorAll('[data-author-mode]')
-    .forEach((button) =>
-      button.setAttribute('aria-pressed', String(button.dataset.authorMode === mode))
-    );
+  document.querySelectorAll('[data-author-mode]').forEach((button) => {
+    button.setAttribute('aria-pressed', String(button.dataset.authorMode === mode));
+  });
   $('#turns-field').hidden = mode !== 'scenario';
+  $('#author-turns').disabled = mode !== 'scenario';
   $('#author-count').disabled = mode === 'polish';
   $('#author-count').max = mode === 'variants' ? 6 : 30;
   if (mode === 'variants' && Number($('#author-count').value) > 6) $('#author-count').value = 3;
   $('#author-language').disabled = mode === 'polish';
   $('#author-expression-options').hidden = mode === 'polish';
-  $('#author-submit').textContent = {
-    polish: '打磨这段中文',
-    variants: '生成表达变体',
-    scenario: '生成场景对话',
-  }[mode];
   $('#source-label').textContent =
     mode === 'scenario'
-      ? '描述演练场景、双方身份与沟通诉求'
+      ? '描述场景和你想练习的对话'
       : mode === 'variants'
-        ? '确认要表达的中文内容'
+        ? '确认要表达的中文'
         : '写下你想说的话';
+  $('#author-source').placeholder =
+    mode === 'scenario'
+      ? '例如：我与合作伙伴商议交付时间，希望争取多两周。'
+      : '用中文写下你的想法，不用一开始就写得很完整。';
+  updateAuthorControls();
 }
+
+async function submitComposition() {
+  if (submitting || loadingRevision || activeComposition()) return;
+  const form = $('#author-form');
+  $('#author-source').setCustomValidity(
+    $('#author-source').value.trim() ? '' : '先写下想说的话或要练习的场景。'
+  );
+  const invalid = form.querySelector(':invalid');
+  if (invalid) {
+    if (invalid.closest('details')) invalid.closest('details').open = true;
+    form.reportValidity();
+    return;
+  }
+  const epoch = ++revisionEpoch;
+  submitting = true;
+  $('#author-error').hidden = true;
+  updateAuthorControls();
+  try {
+    const body = {
+      mode,
+      source: $('#author-source').value,
+      style: $('#author-style').value,
+      language: $('#author-language').value,
+      person: $('#author-person').value,
+      context: $('#author-context').value,
+      instructions: $('#author-instructions').value,
+      count: mode === 'polish' ? 3 : Number($('#author-count').value),
+      turns: mode === 'scenario' ? Number($('#author-turns').value) : 6,
+      parent_id: current?.id?.length === 32 ? current.id : null,
+    };
+    const payload = JSON.stringify(body);
+    if (!pendingSubmission || pendingSubmission.payload !== payload) {
+      pendingSubmission = { id: uid(), payload };
+    }
+    const attempt = pendingSubmission;
+    persistDraft();
+    const item = await post('/compositions', { ...body, request_id: attempt.id });
+    if (epoch !== revisionEpoch) return;
+    pendingSubmission = null;
+    revisions = [item, ...revisions.filter((revision) => revision.id !== item.id)];
+    // The POST response is already the accepted revision; an extra GET must not create a retry.
+    adoptRevision(item);
+    if (innerWidth < 1180)
+      $('#author-output').scrollIntoView({
+        block: 'start',
+        behavior: reducedMotion() ? 'instant' : 'smooth',
+      });
+    remember();
+    dirty = false;
+  } catch (error) {
+    $('#author-error').textContent = error.message;
+    $('#author-error').hidden = false;
+    showAuthorInput();
+  } finally {
+    submitting = false;
+    updateAuthorControls();
+  }
+}
+
 function readResult() {
   if (!current?.result) return null;
   const result = structuredClone(current.result);
@@ -160,38 +361,130 @@ function readResult() {
   });
   return result;
 }
+function renderChinese(result) {
+  if (!result.chinese) return '';
+  if (result.variants.length || result.dialogues.length) {
+    return `
+      <details class="result-chinese-reference">
+        <summary>查看原中文</summary>
+        <label for="result-chinese" class="sr-only">确认过的中文</label>
+        <textarea id="result-chinese" rows="3" maxlength="12000">${escape(result.chinese)}</textarea>
+      </details>`;
+  }
+  return `
+    <article class="panel result-card">
+      <h2>中文定稿</h2>
+      <label for="result-chinese">可直接修改，满意后生成外语表达</label>
+      <textarea id="result-chinese" rows="3" maxlength="12000">${escape(result.chinese)}</textarea>
+      <div class="result-actions">
+        <button class="button primary" data-use-chinese>生成外语表达</button>
+        <details class="result-more">
+          <summary>其他操作</summary>
+          <button class="text-button" data-expression-settings>调整语言和风格</button>
+          <button class="text-button" data-refine-chinese>继续打磨中文</button>
+          <button class="text-button" data-save-chinese>保存中文语料</button>
+        </details>
+      </div>
+    </article>`;
+}
+
+function renderVariant(variant, index) {
+  return `
+    <article class="panel result-card">
+      <h2>${escape(variant.label)}</h2>
+      <label for="variant-${index}">表达内容 · 可直接编辑</label>
+      <textarea id="variant-${index}" rows="3" maxlength="20000">${escape(variant.text)}</textarea>
+      <button class="button secondary" data-save-variant="${index}">保存并配音 →</button>
+    </article>`;
+}
+
+function renderTurn(turn, index, turnIndex, dialogue) {
+  const role = turn.speaker === 'A' ? dialogue.role_a : dialogue.role_b;
+  return `
+    <div class="dialogue-turn ${turn.speaker === 'B' ? 'speaker-b' : ''}">
+      <label for="turn-${index}-${turnIndex}">${turn.speaker} · ${escape(role)}</label>
+      <textarea id="turn-${index}-${turnIndex}" rows="2" maxlength="2000">${escape(turn.text)}</textarea>
+      <label class="translation-label" for="translation-${index}-${turnIndex}">中文释义</label>
+      <textarea id="translation-${index}-${turnIndex}" class="translation" rows="2" maxlength="2000">${escape(turn.translation)}</textarea>
+    </div>`;
+}
+
+function renderDialogue(dialogue, index) {
+  const turns = dialogue.turns
+    .map((turn, turnIndex) => renderTurn(turn, index, turnIndex, dialogue))
+    .join('');
+  return `
+    <details class="panel result-card dialogue-result" ${index === 0 ? 'open' : ''}>
+      <summary>对话 ${index + 1} · ${escape(dialogue.title)}<span>${dialogue.turns.length} 轮</span></summary>
+      <div class="dialogue-body">
+        <label for="dialogue-title-${index}">标题</label>
+        <input id="dialogue-title-${index}" value="${escape(dialogue.title)}" maxlength="160" />
+        <div class="author-options">
+          <label for="role-a-${index}">角色 A<input id="role-a-${index}" value="${escape(dialogue.role_a)}" maxlength="80" /></label>
+          <label for="role-b-${index}">角色 B<input id="role-b-${index}" value="${escape(dialogue.role_b)}" maxlength="80" /></label>
+        </div>
+        ${turns}
+        <button class="button secondary" data-save-dialogue="${index}">保存并配音 →</button>
+      </div>
+    </details>`;
+}
+
 function renderResult(result) {
-  const chinese = result.chinese
-    ? `<article class="panel result-card"><h2>中文定稿</h2><label for="result-chinese">你可以直接修改，再继续打磨或生成表达</label><textarea id="result-chinese" rows="10" maxlength="12000">${escape(result.chinese)}</textarea><div class="result-actions"><button class="button primary" data-use-chinese>以这版中文生成表达</button><details class="result-more"><summary>这版中文的其他操作</summary><button class="text-button" data-refine-chinese>继续打磨中文</button><button class="text-button" data-save-chinese>保存中文语料</button></details></div></article>`
-    : '';
-  const variants = result.variants
-    .map(
-      (variant, index) =>
-        `<article class="panel result-card"><h2>${escape(variant.label)}</h2><label for="variant-${index}">表达内容 · 可直接编辑</label><textarea id="variant-${index}" rows="8" maxlength="20000">${escape(variant.text)}</textarea><button class="button secondary" data-save-variant="${index}">保存语料并选择声音 →</button></article>`
-    )
-    .join('');
-  const dialogues = result.dialogues
-    .map(
-      (dialogue, index) =>
-        `<article class="panel result-card dialogue-result"><label for="dialogue-title-${index}">对话 ${index + 1} · 标题</label><input id="dialogue-title-${index}" value="${escape(dialogue.title)}" maxlength="160" /><div class="author-options"><label for="role-a-${index}">角色 A<input id="role-a-${index}" value="${escape(dialogue.role_a)}" maxlength="80" /></label><label for="role-b-${index}">角色 B<input id="role-b-${index}" value="${escape(dialogue.role_b)}" maxlength="80" /></label></div>${dialogue.turns.map((turn, turnIndex) => `<div class="dialogue-turn ${turn.speaker === 'B' ? 'speaker-b' : ''}"><label for="turn-${index}-${turnIndex}">${turn.speaker} · ${escape(turn.speaker === 'A' ? dialogue.role_a : dialogue.role_b)}</label><textarea id="turn-${index}-${turnIndex}" rows="2" maxlength="2000">${escape(turn.text)}</textarea><label class="translation-label" for="translation-${index}-${turnIndex}">中文释义</label><textarea id="translation-${index}-${turnIndex}" class="translation" rows="2" maxlength="2000">${escape(turn.translation)}</textarea></div>`).join('')}<button class="button secondary" data-save-dialogue="${index}">保存对话并分配声音 →</button></article>`
-    )
-    .join('');
-  $('#author-result').innerHTML =
-    `<div class="result-heading"><h2>${escape(result.title)}</h2><div class="result-actions"><button class="text-button" data-refine-result>按本轮要求再打磨</button><details class="result-more"><summary>更多操作</summary><button class="text-button" data-feedback-composition>记录创作反馈</button>${result.variants.length + result.dialogues.length > 1 ? '<button id="save-all-results" class="text-button">全部语料入库</button>' : ''}</details></div></div>${result.notes ? `<p class="result-notes">${escape(result.notes)}</p>` : ''}${chinese}${variants}${dialogues}`;
+  const multiple = result.variants.length + result.dialogues.length > 1;
+  $('#author-result').innerHTML = `
+    <div class="result-heading">
+      <h2>${escape(result.title)}</h2>
+      <div class="result-actions">
+        <button class="text-button" data-refine-result>继续打磨</button>
+        <details class="result-more">
+          <summary>更多操作</summary>
+          <button class="text-button" data-feedback-composition>记录创作反馈</button>
+          ${multiple ? '<button id="save-all-results" class="text-button">全部语料入库</button>' : ''}
+        </details>
+      </div>
+    </div>
+    ${result.notes ? `<p class="result-notes">${escape(result.notes)}</p>` : ''}
+    ${renderChinese(result)}
+    ${result.variants.map(renderVariant).join('')}
+    ${result.dialogues.map(renderDialogue).join('')}`;
+  requestAnimationFrame(fitResults);
 }
 function renderHistory() {
-  const selected = current?.id || '';
+  const modeNames = { polish: '中文润色', variants: '外语表达', scenario: '场景对话' };
+  const statusNames = {
+    queued: '排队中',
+    running: '创作中',
+    completed: '已完成',
+    failed: '生成失败',
+    interrupted: '已中断',
+  };
   $('#revision-select').innerHTML =
     '<option value="">选择一个历史版本</option>' +
     revisions
-      .map(
-        (item) =>
-          `<option value="${item.id}">${new Date(item.created_at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })} · ${{ polish: '中文打磨', variants: '表达变体', scenario: '场景对话' }[item.input.mode]} · ${{ queued: '排队中', running: '创作中', completed: '已完成', failed: '生成失败', interrupted: '已中断' }[item.status]} · ${escape(item.input.source.slice(0, 18))}</option>`
-      )
+      .map((item) => {
+        const time = new Date(item.created_at).toLocaleString('zh-CN', {
+          month: 'numeric',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+        const label = [
+          time,
+          modeNames[item.input.mode],
+          statusNames[item.status],
+          item.input.source.slice(0, 18),
+        ].join(' · ');
+        return `<option value="${item.id}">${escape(label)}</option>`;
+      })
       .join('');
-  $('#revision-select').value = selected;
+  $('#revision-select').value = current?.id || '';
+  $('#revision-count').textContent = String(revisions.length);
+  $('#author-history').hidden = revisions.length === 0;
+  $('#author-output').hidden = !current && revisions.length === 0;
+  $('#view-authoring').classList.toggle('is-starting', $('#author-output').hidden);
 }
 function renderStatus(item) {
+  updateAuthorControls();
   $('#author-status').textContent =
     item.status === 'completed'
       ? `本版已保留${item.providers?.length ? ` · ${item.providers.join(' → ')}` : ''}。修改满意后再保存到语料库。`
@@ -206,7 +499,30 @@ function renderStatus(item) {
   );
 }
 async function selectRevision(id, localResult) {
-  current = await api(`/compositions/${id}`);
+  const epoch = ++revisionEpoch;
+  loadingRevision = true;
+  updateAuthorControls();
+  try {
+    const item = await api(`/compositions/${id}`);
+    if (epoch !== revisionEpoch) return false;
+    adoptRevision(item, localResult);
+    return true;
+  } catch {
+    if (epoch === revisionEpoch) {
+      $('#author-status').textContent = '打开版本失败，当前编辑内容已保留，请重试。';
+      renderHistory();
+    }
+    return false;
+  } finally {
+    if (epoch === revisionEpoch) {
+      loadingRevision = false;
+      updateAuthorControls();
+    }
+  }
+}
+
+function adoptRevision(item, localResult) {
+  current = item;
   const spec = current.input;
   setMode(spec.mode);
   for (const field of [
@@ -228,6 +544,8 @@ async function selectRevision(id, localResult) {
       '<div class="result-empty"><h2>正在准备学习材料</h2><p>生成完成后会显示在这里。页面关闭后任务仍会继续。</p></div>';
   renderHistory();
   dirty = false;
+  fitResults();
+  updateAuthorControls();
   $('#source-count').textContent = `${spec.source.length.toLocaleString()} / 12,000 字`;
 }
 async function saveCandidate(kind, index, navigate = true) {
@@ -236,7 +554,7 @@ async function saveCandidate(kind, index, navigate = true) {
   let body = {
     title: result.title,
     language,
-    tags: [current.input.style],
+    tags: current.tags || (current.input.style ? [current.input.style] : []),
     composition_id: current.id?.length === 32 ? current.id : null,
   };
   if (kind === 'chinese') body = { ...body, text: result.chinese, language: 'z' };
@@ -267,7 +585,10 @@ async function saveCandidate(kind, index, navigate = true) {
   return material;
 }
 export function editDialogue(material) {
+  revisionEpoch += 1;
+  loadingRevision = false;
   current = {
+    tags: material.tags || [],
     input: { language: material.language, mode: 'scenario' },
     result: {
       title: material.title,
@@ -287,8 +608,12 @@ export function editDialogue(material) {
   renderResult(current.result);
   setMode('scenario');
   $('#author-source').value = material.title;
+  $('#author-language').value = material.language;
   $('#author-status').textContent = '修改对话后保存为一份新语料；原语料与录音会保留。';
+  $('#author-error').hidden = true;
+  renderHistory();
   showView('authoring');
+  remember();
 }
 export function manageMaterial(material) {
   metadataId = material.id;
@@ -413,37 +738,20 @@ export async function initWorkspace() {
         remember();
       })
   );
-  $('#author-form').onsubmit = async (event) => {
+  $('#author-form').onsubmit = (event) => {
     event.preventDefault();
-    $('#author-submit').disabled = true;
-    try {
-      const body = {
-        mode,
-        source: $('#author-source').value,
-        style: $('#author-style').value,
-        language: $('#author-language').value,
-        person: $('#author-person').value,
-        context: $('#author-context').value,
-        instructions: $('#author-instructions').value,
-        count: Number($('#author-count').value),
-        turns: Number($('#author-turns').value),
-        parent_id: current?.id?.length === 32 ? current.id : null,
-      };
-      const item = await post('/compositions', body);
-      revisions.unshift(item);
-      await selectRevision(item.id);
-      if (innerWidth < 1180)
-        $('#author-output').scrollIntoView({ block: 'start', behavior: 'smooth' });
-      remember();
-    } catch (error) {
-      toast(error.message, true);
-    } finally {
-      $('#author-submit').disabled = false;
-    }
+    void submitComposition();
   };
+  $('#import-author-text').onclick = () => $('#author-file').click();
+  $('#author-result').addEventListener('toggle', fitResults, true);
+  window.addEventListener('pagehide', persistDraft);
   $('#new-composition').onclick = () => {
     if (dirty && !confirm('当前编辑已在此浏览器保存。开始新创作会清空这份本地草稿，是否继续？'))
       return;
+    clearTimeout(draftTimer);
+    revisionEpoch += 1;
+    loadingRevision = false;
+    pendingSubmission = null;
     current = null;
     dirty = false;
     localStorage.removeItem(draftKey());
@@ -452,6 +760,9 @@ export async function initWorkspace() {
       '<div class="result-empty"><h2>从一个新想法开始</h2><p>写下自己的表达，或描述一个想练习的场景。</p></div>';
     $('#author-status').textContent = '之前的生成版本仍保留在创作历史中。';
     setMode('polish');
+    $('#author-settings').open = false;
+    $('#author-error').hidden = true;
+    $('#author-draft-status').textContent = '草稿仅保存在此浏览器';
     renderHistory();
     $('#author-source').focus();
   };
@@ -461,9 +772,10 @@ export async function initWorkspace() {
       renderHistory();
       return;
     }
-    await selectRevision($('#revision-select').value);
-    remember();
-    dirty = false;
+    if (await selectRevision($('#revision-select').value)) {
+      remember();
+      dirty = false;
+    }
   };
   $('#author-result').onclick = async (event) => {
     const button = event.target.closest('button');
@@ -471,9 +783,19 @@ export async function initWorkspace() {
     try {
       if (button.hasAttribute('data-use-chinese') || button.hasAttribute('data-refine-chinese')) {
         $('#author-source').value = $('#result-chinese').value;
+        if (button.hasAttribute('data-use-chinese')) $('#author-instructions').value = '';
         setMode(button.hasAttribute('data-use-chinese') ? 'variants' : 'polish');
         remember();
-        $('#author-instructions').focus();
+        if (button.hasAttribute('data-use-chinese')) await submitComposition();
+        else showAuthorInput({ instructions: true });
+        return;
+      }
+      if (button.hasAttribute('data-expression-settings')) {
+        $('#author-source').value = $('#result-chinese').value;
+        setMode('variants');
+        $('#author-instructions').value = '';
+        remember();
+        showAuthorInput();
         return;
       }
       if (button.hasAttribute('data-refine-result')) {
@@ -489,7 +811,7 @@ export async function initWorkspace() {
         $('#author-source').value = source;
         setMode(current.input.mode);
         remember();
-        $('#author-instructions').focus();
+        showAuthorInput({ instructions: true });
         return;
       }
       if (button.hasAttribute('data-feedback-composition'))
@@ -602,14 +924,22 @@ export async function initWorkspace() {
   };
   revisions = await api('/compositions');
   renderHistory();
-  let draft;
-  try {
-    draft = JSON.parse(localStorage.getItem(draftKey()) || 'null');
-  } catch {}
+  const draft = loadDraft();
   if (draft) {
+    pendingSubmission = draft.pendingSubmission;
     if (draft.current && revisions.some((item) => item.id === draft.current))
       await selectRevision(draft.current, draft.result);
-    setMode(draft.mode);
+    if (!draft.current && draft.inlineInput && validDraftResult(draft.result)) {
+      current = {
+        input: draft.inlineInput,
+        result: draft.result,
+        tags: Array.isArray(draft.inlineTags)
+          ? draft.inlineTags.filter((tag) => typeof tag === 'string')
+          : [],
+      };
+      renderResult(current.result);
+    }
+    setMode(['polish', 'variants', 'scenario'].includes(draft.mode) ? draft.mode : 'polish');
     for (const field of [
       'source',
       'context',
@@ -624,6 +954,8 @@ export async function initWorkspace() {
     $('#source-count').textContent =
       `${$('#author-source').value.length.toLocaleString()} / 12,000 字`;
   } else setMode('polish');
+  updateAuthorControls();
+  renderHistory();
   let polling = false;
   setInterval(async () => {
     if (
@@ -634,19 +966,25 @@ export async function initWorkspace() {
     )
       return;
     polling = true;
+    const identifier = current.id;
+    const epoch = revisionEpoch;
     try {
-      const item = await api(`/compositions/${current.id}`);
+      const item = await api(`/compositions/${identifier}`);
+      if (epoch !== revisionEpoch || current?.id !== identifier) return;
       current = item;
       renderStatus(item);
       if (item.result) {
         renderResult(item.result);
-        remember();
-        dirty = false;
+        persistDraft();
       }
-      revisions = await api('/compositions');
+      const history = await api('/compositions');
+      if (epoch !== revisionEpoch || current?.id !== identifier) return;
+      revisions = history;
       renderHistory();
     } catch {
-      $('#author-status').textContent = '连接暂时中断，正在重连。你的原文和已提交版本都已保存。';
+      if (epoch === revisionEpoch && current?.id === identifier) {
+        $('#author-status').textContent = '连接暂时中断，正在重连。你的原文和已提交版本都已保存。';
+      }
     } finally {
       polling = false;
     }

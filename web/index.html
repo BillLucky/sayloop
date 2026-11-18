@@ -276,83 +276,109 @@
               <h1>先说清楚，<em>再练熟。</em></h1>
               <p>保留你的意思，找到适合场合的说法。</p>
             </div>
-            <button id="new-composition" class="button secondary">开始新创作</button>
+            <button id="new-composition" class="button secondary">新创作</button>
           </div>
           <div class="authoring-layout">
-            <form method="post" id="author-form" class="panel author-input">
-              <div class="segmented author-modes" role="group" aria-label="创作任务">
-                <button type="button" data-author-mode="polish" aria-pressed="true">中文打磨</button
-                ><button type="button" data-author-mode="variants" aria-pressed="false">
-                  表达变体</button
-                ><button type="button" data-author-mode="scenario" aria-pressed="false">
-                  场景对话
+            <form method="post" id="author-form" class="panel author-input" novalidate>
+              <fieldset id="author-fields" class="author-fields">
+                <div class="segmented author-modes" role="group" aria-label="创作任务">
+                  <button type="button" data-author-mode="polish" aria-pressed="true">
+                    润色中文
+                  </button>
+                  <button type="button" data-author-mode="variants" aria-pressed="false">
+                    外语表达
+                  </button>
+                  <button type="button" data-author-mode="scenario" aria-pressed="false">
+                    场景对话
+                  </button>
+                </div>
+                <label for="author-source" id="source-label">写下你想说的话</label>
+                <textarea
+                  id="author-source"
+                  required
+                  maxlength="12000"
+                  rows="6"
+                  placeholder="用中文写下你的想法，不用一开始就写得很完整。"
+                  aria-describedby="source-count"
+                ></textarea>
+                <div class="author-source-tools">
+                  <span id="source-count">0 / 12,000 字</span>
+                  <button class="text-button" id="import-author-text" type="button">
+                    导入文本
+                  </button>
+                  <input id="author-file" type="file" accept=".txt,.md" hidden />
+                </div>
+                <div id="author-expression-options" class="author-options" hidden>
+                  <label for="author-language"
+                    >目标语言<select id="author-language"></select
+                  ></label>
+                  <label for="author-style"
+                    >表达风格<select id="author-style">
+                      <option value="spoken">日常口语</option>
+                      <option value="natural">自然美式</option>
+                      <option value="new_york">纽约日常口语</option>
+                      <option value="business">商务沟通</option>
+                      <option value="simple">基础表达</option>
+                    </select></label
+                  >
+                </div>
+                <details id="author-settings" class="author-settings">
+                  <summary>
+                    <span>更多设置</span><span id="author-settings-summary">场合 · 修改要求</span>
+                  </summary>
+                  <div id="author-extra-options" class="author-options" hidden>
+                    <label for="author-person"
+                      >叙述人称<select id="author-person">
+                        <option value="first">第一人称 · 我 / 我们</option>
+                        <option value="second">第二人称 · 你 / 你们</option>
+                        <option value="third">第三人称 · 他 / 她 / 他们</option>
+                      </select></label
+                    >
+                    <label for="author-count"
+                      >生成数量<input id="author-count" type="number" min="1" max="30" value="3"
+                    /></label>
+                    <label id="turns-field" for="author-turns" hidden
+                      >每组发言轮数<input
+                        id="author-turns"
+                        type="number"
+                        min="2"
+                        max="16"
+                        value="6"
+                    /></label>
+                  </div>
+                  <label for="author-context">场合与目标</label>
+                  <input
+                    id="author-context"
+                    maxlength="2000"
+                    placeholder="例如：商议交付期限，希望争取多两周"
+                  />
+                  <label for="author-instructions">想怎么改</label>
+                  <textarea
+                    id="author-instructions"
+                    rows="2"
+                    maxlength="2000"
+                    placeholder="例如：更简短；语气更礼貌；保留数字"
+                  ></textarea>
+                </details>
+              </fieldset>
+              <p id="author-error" class="form-error" role="alert" hidden></p>
+              <div class="author-submit-row">
+                <button id="author-submit" class="button primary full" type="submit">
+                  润色中文
                 </button>
+                <span id="author-draft-status" class="field-help" role="status"
+                  >草稿仅保存在此浏览器</span
+                >
               </div>
-              <label for="author-source" id="source-label">写下你想说的话</label
-              ><textarea
-                id="author-source"
-                required
-                maxlength="12000"
-                rows="10"
-                placeholder="用中文写下你的想法，不用一开始就写得很完整。"
-              ></textarea>
-              <div class="author-source-tools">
-                <span id="source-count">0 / 12,000 字</span
-                ><label class="text-button" for="author-file"
-                  >导入纯文本<input id="author-file" type="file" accept=".txt,.md" hidden
-                /></label>
-              </div>
-              <div id="author-expression-options" class="author-options">
-                <label for="author-style"
-                  >表达风格<select id="author-style">
-                    <option value="spoken">日常口语</option>
-                    <option value="natural">自然美式</option>
-                    <option value="new_york">纽约日常口语</option>
-                    <option value="business">商务沟通</option>
-                    <option value="simple">基础表达</option>
-                  </select></label
-                ><label for="author-language">目标语言<select id="author-language"></select></label
-                ><label for="author-person"
-                  >叙述人称<select id="author-person">
-                    <option value="first">第一人称 · 我 / 我们</option>
-                    <option value="second">第二人称 · 你 / 你们</option>
-                    <option value="third">第三人称 · 他 / 她 / 他们</option>
-                  </select></label
-                ><label for="author-count"
-                  >生成数量<input
-                    id="author-count"
-                    type="number"
-                    min="1"
-                    max="30"
-                    value="3" /></label
-                ><label id="turns-field" for="author-turns" hidden
-                  >每组发言轮数<input id="author-turns" type="number" min="2" max="16" value="6"
-                /></label>
-              </div>
-              <label for="author-context">场合与目标</label
-              ><input
-                id="author-context"
-                maxlength="2000"
-                placeholder="例如：和采购方商议交付期限，希望争取多两周"
-              />
-              <label for="author-instructions">本轮修改要求</label
-              ><textarea
-                id="author-instructions"
-                rows="2"
-                maxlength="2000"
-                placeholder="例如：语气更直接；保留我的数字；补充对方追问"
-              ></textarea>
-              <button id="author-submit" class="button primary full" type="submit">
-                打磨这段中文
-              </button>
-              <p class="field-help">
-                创作使用自有模型服务，原文和每个版本都会保留。生成内容请确认后再入库。
-              </p>
+              <p class="field-help author-model-note">提交内容将发送到配置的模型服务</p>
               <details class="prompt-source">
-                <summary>风格来源与使用原则</summary>
+                <summary>数据与风格说明</summary>
+                <p>
+                  提交后，原文会发送到你配置的模型服务，生成版本保留在你的账号中，保存的语料默认私有。
+                </p>
                 <p>
                   参考李笑来 1000
-                  小时的个人语料准备方法：自然美式、常见短语与习语、简短和展开的表达。这里使用可修改的独立提示词，不承诺某个声音具有纽约口音。
+                  小时的个人语料方法，使用独立、可修改的提示词。文本风格不代表语音具有对应地域口音。
                 </p>
                 <a
                   href="https://1000h.org/training-tasks/kick-off.html"
@@ -362,13 +388,16 @@
                 >
               </details>
             </form>
-            <div id="author-output" class="author-output">
-              <div class="revision-bar">
-                <label for="revision-select">创作历史</label
-                ><select id="revision-select">
-                  <option value="">还没有创作版本</option>
-                </select>
-              </div>
+            <div id="author-output" class="author-output" tabindex="-1" hidden>
+              <details id="author-history" class="author-history">
+                <summary>历史版本 <span id="revision-count">0</span></summary>
+                <div class="revision-bar">
+                  <label for="revision-select" class="sr-only">创作历史</label>
+                  <select id="revision-select">
+                    <option value="">还没有创作版本</option>
+                  </select>
+                </div>
+              </details>
               <p id="author-status" role="status" aria-live="polite">
                 写下想法，从中文打磨开始；也可以直接创建场景对话。
               </p>

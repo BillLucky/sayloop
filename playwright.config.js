@@ -1,12 +1,17 @@
 import { defineConfig } from '@playwright/test';
 
+const testPort = Number(process.env.SAYLOOP_TEST_PORT || 18771);
+if (!Number.isInteger(testPort) || testPort < 1 || testPort > 65535) {
+  throw new Error('SAYLOOP_TEST_PORT must be an available local port.');
+}
+
 process.env.NO_PROXY = [process.env.NO_PROXY, '127.0.0.1', 'localhost'].filter(Boolean).join(',');
 
 export default defineConfig({
   testDir: './tests/browser',
   workers: 1,
   use: {
-    baseURL: 'http://127.0.0.1:8771',
+    baseURL: `http://127.0.0.1:${testPort}`,
     channel: process.env.PLAYWRIGHT_CHANNEL || undefined,
     reducedMotion: 'reduce',
   },
@@ -18,8 +23,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'python3 -m http.server 8771 --bind 127.0.0.1 --directory web',
-    url: 'http://127.0.0.1:8771',
+    command: `python3 -m http.server ${testPort} --bind 127.0.0.1 --directory web`,
+    url: `http://127.0.0.1:${testPort}`,
     reuseExistingServer: false,
   },
 });

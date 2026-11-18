@@ -1,4 +1,4 @@
-.venv/
+.venv
 __pycache__/
 .pytest_cache/
 .ruff_cache/
@@ -6,7 +6,7 @@ __pycache__/
 .DS_Store
 .env
 data/
-node_modules/
+node_modules
 test-results/
 playwright-report/
 .taste-skill/

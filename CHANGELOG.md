@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.2 — 2026-11-19
+
+- Simplify authoring to source text and one primary action; reveal relevant language/style and optional settings on demand. Focus the empty desktop editor and keep phone actions within reach.
+- Generate expressions directly from edited Chinese, with a separate settings path; prevent duplicate requests and preserve retryable input after errors.
+- Scope retry IDs to each account, adopt accepted responses directly, and ignore stale polling/history responses so slow connections cannot duplicate tasks or overwrite edits.
+- Fit result editors to content, fold dialogue batches and history, and restore existing-dialogue drafts across reloads. Handle corrupt/unavailable local storage and cancel delayed writes on logout.
+- State the authoring model’s data boundary in the interface and correct outdated local-only/account documentation.
+- Add repository-local staged-source hooks shared with CI, exact reviewed-image revisions, private-address/configuration checks, and fresh-clone commit regression tests.
+
+
 ## 0.4.1 — 2026-11-17
 
 - Simplify phone navigation to three Chinese tabs; move studio, voices, progress, and account actions into a native More sheet.
