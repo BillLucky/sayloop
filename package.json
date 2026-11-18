@@ -5,6 +5,8 @@
   "type": "module",
   "description": "Local speech generation and personal language practice with Kokoro",
   "scripts": {
+    "prepare": "python3 scripts/install_hooks.py",
+    "hooks:install": "python3 scripts/install_hooks.py",
     "format": "prettier --write web/",
     "format:check": "prettier --check web/",
     "check": "node --check web/app.js && node --check web/practice-player.js && node --check web/audio-cache.js && node --check web/workspace.js && node --check web/navigation.js",

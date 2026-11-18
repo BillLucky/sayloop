@@ -25,3 +25,9 @@ The owner authorized public source distribution on 2026-10-05 after a fresh hist
 `requirements.in` lists direct Python dependencies; `requirements.lock` records the tested full environment. Regenerate with a Python 3.11 resolver in an isolated environment, inspect the diff, and exercise all language options and Docker before replacing the lock. Do not freeze an unrelated global Python installation. Use `npm ci --ignore-scripts` for browser development tools. Dependabot proposals require tests and human review, not automatic merging.
 
 Windows-native Python, GPU/MLX, public multi-user hosting, and physical mobile-device support are not advertised as validated features. They can be separate future milestones rather than hidden requirements for the local source release.
+
+## Staged source gate
+
+The repository-local pre-commit hook runs `scripts/check_staged.py`. Development setup and ordinary npm installation enable it without replacing custom hooks. With lifecycle scripts disabled, run `npm run hooks:install` explicitly. CI checks all indexed source through the same command with `--all`.
+
+Formatting uses staged configuration and source in a temporary index snapshot. Privacy scanning checks indexed blobs and reachable history; it never reads private data folders. It rejects private addresses and unreviewed image revisions as well as credentials and generated artifacts. Exact historical synthetic fixture revisions remain reviewed exceptions. Fresh-clone commit tests cover both index/worktree mismatch directions and rejection without echoing credential text.

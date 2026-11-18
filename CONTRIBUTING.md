@@ -8,6 +8,12 @@ Run `./scripts/setup.sh`, then `npm ci --ignore-scripts`. Use `.venv/bin/python 
 
 Python tests live in `tests/test_*.py`; playback tests use `tests/*.test.mjs` and Node's native runner. Tests must use synthetic content and isolated temporary data. Do not load a contributor's personal corpus or downloaded recordings into fixtures.
 
+Run `npm run hooks:install` after installing browser tools. Ordinary `npm install` also installs the repository-local hook. Existing custom hooks are preserved; include `python3 scripts/check_staged.py` in your existing pre-commit hook when the installer reports one.
+
+The hook checks a temporary snapshot of the Git index, so unstaged edits cannot hide a formatting error or make correctly staged source fail. CI runs the same contract with `python3 scripts/check_staged.py --all`. Fresh-clone commit regression tests run locally and in CI, including staged-bad/worktree-good and staged-good/worktree-bad cases. Tool versions must match the staged lock/configuration.
+
+The privacy check scans indexed source and reachable history. It blocks private addresses, credential patterns, local configuration, private documents, media, and model files. Documentation images require reviewed synthetic blobs, not just approved filenames. Historical synthetic network-fixture exceptions identify exact immutable blobs. Pattern scanning supplements staged-content review; it cannot identify all personal prose.
+
 Before opening a pull request:
 
 ```sh

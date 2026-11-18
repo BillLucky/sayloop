@@ -18,9 +18,10 @@ jobs:
           node-version: '22'
           cache: npm
       - run: pip install -c requirements.lock fastapi python-multipart soundfile numpy pytest httpx ruff
-      - run: python -m pytest -q
-      - run: ruff check app scripts tests && ruff format --check app scripts tests
       - run: npm ci --ignore-scripts
+      - run: npm run hooks:install
+      - run: python -m pytest -q
+      - run: python scripts/check_staged.py --all
       - run: npm run check && npm test && npm run format:check
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser

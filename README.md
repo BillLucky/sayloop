@@ -106,6 +106,7 @@ Shortcuts do not intercept typing, input controls, or IME composition. Clicking 
 
 ```sh
 npm ci --ignore-scripts
+npm run hooks:install
 npm test && npm run check && npm run format:check
 .venv/bin/python -m pytest -q
 .venv/bin/ruff check app scripts tests

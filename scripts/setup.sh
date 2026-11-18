@@ -1,6 +1,7 @@
 #!/bin/sh
 set -eu
 cd "$(dirname "$0")/.."
+python3 scripts/install_hooks.py
 command -v uv >/dev/null || { echo 'Install uv first: https://docs.astral.sh/uv/'; exit 1; }
 command -v ffmpeg >/dev/null || { echo 'Install FFmpeg first (macOS: brew install ffmpeg).'; exit 1; }
 uv venv --python 3.11 --allow-existing .venv
