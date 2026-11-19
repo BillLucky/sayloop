@@ -650,6 +650,144 @@ test('logout still clears drafts when device audio storage rejects cleanup', asy
   await expect(page.locator('#auth-error')).toContainText('缓存');
 });
 
+test('changing a password clears drafts even when device storage refuses cleanup', async ({
+  page,
+}) => {
+  await page.locator('#author-source').fill('用于验证改密清理的合成草稿。');
+  await expect(page.locator('#author-draft-status')).toContainText('已保存');
+  await page.route('**/api/auth/password', (route) => route.fulfill({ json: { ok: true } }));
+  await page.route('**/api/auth/me', (route) => route.fulfill({ json: { user: null } }));
+  await page.evaluate(() => {
+    indexedDB.open = () => {
+      throw new DOMException('Denied', 'SecurityError');
+    };
+  });
+  await goToView(page, 'progress');
+  await page.locator('#current-password').fill('synthetic-current-password');
+  await page.locator('#new-password').fill('synthetic-new-password');
+  await page.locator('#password-form button').click();
+  await expect(page.locator('#auth-screen')).toBeVisible();
+  expect(
+    await page.evaluate(() => localStorage.getItem('sayloop-authoring-synthetic-user'))
+  ).toBeNull();
+  await expect(page.locator('#auth-error')).toContainText('缓存');
+});
+
+test('an older 401 cannot reload before logout finishes clearing drafts', async ({
+  page,
+}, testInfo) => {
+  await page.locator('#author-source').fill('用于验证退出响应竞态的合成草稿。');
+  await expect(page.locator('#author-draft-status')).toContainText('已保存');
+  let releaseRead, releaseLogout;
+  await page.route('**/api/generations', async (route) => {
+    await new Promise((resolve) => {
+      releaseRead = resolve;
+    });
+    return route.fulfill({ status: 401, json: { detail: 'Synthetic expired session' } });
+  });
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await expect.poll(() => Boolean(releaseRead)).toBe(true);
+  await page.route('**/api/auth/logout', async (route) => {
+    await new Promise((resolve) => {
+      releaseLogout = resolve;
+    });
+    await page.route('**/api/auth/me', (request) => request.fulfill({ json: { user: null } }));
+    return route.fulfill({ json: { ok: true } });
+  });
+  if (testInfo.project.name === 'mobile') {
+    await page.locator('#more-tools').click();
+    await page.locator('#mobile-logout').click();
+  } else await page.locator('#logout').click();
+  await expect.poll(() => Boolean(releaseLogout)).toBe(true);
+  releaseRead();
+  await page.waitForTimeout(200);
+  await expect(page.locator('#auth-screen')).toBeHidden();
+  releaseLogout();
+  await expect(page.locator('#auth-screen')).toBeVisible();
+  expect(
+    await page.evaluate(() => localStorage.getItem('sayloop-authoring-synthetic-user'))
+  ).toBeNull();
+});
+
+test('a failed logout restores controls only for the same authenticated account', async ({
+  page,
+}, testInfo) => {
+  await page.locator('#author-source').fill('用于验证退出失败恢复的合成草稿。');
+  await expect(page.locator('#author-draft-status')).toContainText('已保存');
+  await page.route('**/api/auth/logout', (route) => route.abort('failed'));
+  const logout = async () => {
+    if (testInfo.project.name === 'mobile') {
+      if (!(await page.locator('#more-menu').evaluate((menu) => menu.open))) {
+        await page.locator('#more-tools').click();
+      }
+      await page.locator('#mobile-logout').click();
+    } else await page.locator('#logout').click();
+  };
+  await logout();
+  await expect(page.locator('#toast')).toContainText('退出未完成');
+  await expect(page.locator('#author-source')).toHaveValue('用于验证退出失败恢复的合成草稿。');
+  await page.route('**/api/auth/me', (route) =>
+    route.fulfill({
+      json: {
+        user: { ...user, id: 'synthetic-other-account', display_name: '另一个学习者' },
+      },
+    })
+  );
+  await logout();
+  await expect(page.locator('#profile-name')).toHaveText('另一个学习者');
+  expect(
+    await page.evaluate(() => localStorage.getItem('sayloop-authoring-synthetic-user'))
+  ).toBeNull();
+});
+
+test('logout cancels a pending device download in another tab', async ({ page }, testInfo) => {
+  const peer = await page.context().newPage();
+  await peer.goto('/favicon.svg');
+  let release;
+  await peer.route('**/api/audio/session-retirement.wav', async (route) => {
+    await new Promise((resolve) => {
+      release = resolve;
+    });
+    return route.fulfill({ contentType: 'audio/wav', body: Buffer.from('synthetic audio') });
+  });
+  await peer.evaluate(async () => {
+    const cache = await import('/audio-cache.js');
+    cache.setAudioUser('synthetic-user');
+    window.saving = cache.saveAudio('/api/audio/session-retirement.wav').then(
+      () => 'completed',
+      (error) => error.name
+    );
+    window.cache = cache;
+  });
+  await expect.poll(() => Boolean(release)).toBe(true);
+  if (testInfo.project.name === 'mobile') {
+    await page.locator('#more-tools').click();
+    await page.locator('#mobile-logout').click();
+  } else await page.locator('#logout').click();
+  await expect(page.locator('#auth-screen')).toBeVisible();
+  await expect
+    .poll(() =>
+      peer.evaluate(async () => {
+        try {
+          await window.cache.cachedAudio('/api/audio/session-retirement.wav');
+          return false;
+        } catch (error) {
+          return error.name === 'AbortError';
+        }
+      })
+    )
+    .toBe(true);
+  release();
+  expect(await peer.evaluate(() => window.saving)).toBe('AbortError');
+  expect(
+    await peer.evaluate(async () => {
+      window.cache.setAudioUser('synthetic-user');
+      return Boolean(await window.cache.cachedAudio('/api/audio/session-retirement.wav'));
+    })
+  ).toBe(false);
+  await peer.close();
+});
+
 test('history loading protects the current editor until replacement is ready', async ({ page }) => {
   await page.locator('#author-source').fill('第一个版本。');
   await page.locator('#author-submit').click();
@@ -675,4 +813,27 @@ test('history loading protects the current editor until replacement is ready', a
   await expect(page.locator('#author-result')).not.toHaveAttribute('inert', '');
   await expect(page.locator('#author-source')).toBeEnabled();
   await expect(page.locator('#revision-select')).toHaveValue(ids[1]);
+});
+
+test('a delayed material save cannot navigate away from a newer result edit', async ({ page }) => {
+  await page.locator('#author-source').fill('一段用于合成测试的想法。');
+  await page.locator('#author-submit').click();
+  await expect(page.locator('#result-chinese')).toBeVisible();
+  await page.locator('[data-use-chinese]').click();
+  await expect(page.locator('#variant-0')).toBeVisible();
+  let release;
+  await page.route('**/api/materials', async (route) => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    await new Promise((resolve) => {
+      release = resolve;
+    });
+    return route.fallback();
+  });
+  await page.locator('[data-save-variant="0"]').click();
+  await expect.poll(() => Boolean(release)).toBe(true);
+  await page.locator('#variant-0').fill('A newer edit that must remain visible.');
+  release();
+  await page.waitForTimeout(250);
+  await expect(page.locator('#view-authoring')).toBeVisible();
+  await expect(page.locator('#variant-0')).toHaveValue('A newer edit that must remain visible.');
 });

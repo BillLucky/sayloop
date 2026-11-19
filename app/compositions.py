@@ -13,7 +13,7 @@ from urllib.request import ProxyHandler, Request, build_opener
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from . import config
-from .storage import now, read_json, valid_id, write_json
+from .storage import IDENTIFIER_PATTERN, RequestConflict, now, read_json, valid_id, write_json
 
 executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="authoring")
 lock = threading.Lock()
@@ -98,11 +98,7 @@ class CompositionInput(BaseModel):
     count: int = Field(default=3, ge=1, le=30)
     turns: int = Field(default=6, ge=2, le=16)
     parent_id: str | None = None
-    request_id: str | None = Field(default=None, pattern="^[a-f0-9]{32}$")
-
-
-class RequestConflict(ValueError):
-    """A retry key must never silently refer to different content."""
+    request_id: str | None = Field(default=None, pattern=IDENTIFIER_PATTERN)
 
 
 def providers():

@@ -69,3 +69,11 @@ Another TTS engine should implement the current audio/segment result contract. L
 `web/navigation.js` coordinates the same `data-view` routes across the desktop sidebar and three-tab mobile navigation. Native dialog sheets provide focus containment, Escape/backdrop dismissal, and secondary actions; they never own playback state. `web/navigation.css` defines compact navigation, sheet, action-hierarchy, and safe-area layout rules on the existing palette. The global player sits above the mobile tabs; immersive mode hides the tabs. Hiding the player pauses it; any later transport start or recording selection reveals it again.
 
 The browser polls speech jobs every 3.5 seconds while tasks are active, about every 30 seconds when idle, and stops list polling while hidden. Returning to the foreground refreshes immediately. Authoring polling also pauses while hidden. Running composition responses omit the persisted partial-result field; interruption still exposes completed batches through the result contract. No model, voice weight, or network policy changes are needed for this UI iteration.
+
+## Continuity and asynchronous ownership
+
+The account database adds a non-destructive study-resume index. Authorized full-recording reads derive a bounded resume position from the current account's latest session with an actual update, excluding newly opened empty sessions. The common playback transport owns deferred seeks and position recovery; view actions do not create a second playback state machine.
+
+Library selectors live in `web/library.js`. They normalize multi-keyword search, index completed full recordings, and cache normalized material text with metadata-aware invalidation. Search and per-view scroll state remain document-local.
+
+Studio and candidate saves capture their submitted snapshot before the first await. Accepted mutations invalidate older list reads. Material reuse is opt-in and restricted to exact owned private nonarchived snapshots. Speech request keys use the same account-scoped conflict protocol as authoring; internal keys are omitted from recording responses. Device-cache operations carry a session epoch, revoked before logout/password cleanup awaits and propagated to same-origin tabs through BroadcastChannel where available. Authentication transitions suppress premature 401 reloads while session revocation finishes.

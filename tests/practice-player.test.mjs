@@ -102,3 +102,89 @@ test('shortcuts ignore typing, IME composition and command chords, including spa
   assert.equal(shortcutAction({ code: 'Space', isComposing: true }), null);
   assert.equal(shortcutAction({ code: 'ArrowRight' }), 'next');
 });
+
+test('a paused resume waits for metadata without autoplay and later user seeks win', () => {
+  const listeners = new Map();
+  let position = 0;
+  const audio = {
+    readyState: 0,
+    paused: true,
+    playCalls: 0,
+    get currentTime() {
+      return position;
+    },
+    set currentTime(value) {
+      if (this.readyState) position = value;
+    },
+    addEventListener(name, fn) {
+      listeners.set(name, fn);
+    },
+    play() {
+      this.playCalls++;
+    },
+  };
+  const player = new PracticePlayer(audio);
+  player.load([
+    { start: 0, end: 4 },
+    { start: 4, end: 10 },
+  ]);
+  player.seek(6);
+  assert.equal(player.index, 1);
+  assert.equal(position, 0);
+  player.seek(3);
+  audio.readyState = 1;
+  listeners.get('loadedmetadata')();
+  assert.equal(position, 3);
+  assert.equal(player.index, 0);
+  assert.equal(audio.playCalls, 0);
+  assert.equal(audio.paused, true);
+});
+
+test('loading another recording discards a pending resume and invalid times return to zero', () => {
+  const listeners = new Map();
+  const audio = {
+    readyState: 0,
+    currentTime: 0,
+    addEventListener(name, fn) {
+      listeners.set(name, fn);
+    },
+  };
+  const player = new PracticePlayer(audio);
+  player.load([{ start: 0, end: 10 }]);
+  player.seek(5);
+  player.load([{ start: 0, end: 2 }]);
+  audio.currentTime = 0;
+  audio.readyState = 1;
+  listeners.get('loadedmetadata')();
+  assert.equal(audio.currentTime, 0);
+  player.seek(Infinity);
+  assert.equal(audio.currentTime, 0);
+  assert.equal(player.index, 0);
+});
+
+test('reentering a recording before metadata preserves the pending paused position', () => {
+  const listeners = new Map();
+  let time = 0;
+  const audio = {
+    readyState: 0,
+    get currentTime() {
+      return time;
+    },
+    set currentTime(value) {
+      if (this.readyState) time = value;
+    },
+    addEventListener(name, fn) {
+      listeners.set(name, fn);
+    },
+  };
+  const player = new PracticePlayer(audio),
+    segments = [{ start: 0, end: 20 }];
+  player.load(segments);
+  player.seek(10);
+  const position = player.position;
+  player.load(segments);
+  player.seek(position);
+  audio.readyState = 1;
+  listeners.get('loadedmetadata')();
+  assert.equal(time, 10);
+});

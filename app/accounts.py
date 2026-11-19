@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS events (
  id TEXT, session_id TEXT, seconds INTEGER, day TEXT, PRIMARY KEY(id, session_id)
 );
 CREATE INDEX IF NOT EXISTS study_user ON study(user_id);
+CREATE INDEX IF NOT EXISTS study_resume ON study(user_id,job_id,updated);
 CREATE TABLE IF NOT EXISTS feedback (
  id TEXT PRIMARY KEY, user_id TEXT, target_type TEXT, target_id TEXT,
  rating INTEGER, note TEXT, created REAL
@@ -238,6 +239,21 @@ def record_event(user, session_id, event_id, seconds, position):
             "UPDATE study SET updated=?,seconds=seconds+?,position=? WHERE id=?",
             (stamp, credited, position, session_id),
         )
+
+
+def resume_position(user, job):
+    """Read only this learner's latest recorded position, excluding unopened sessions."""
+    if job.get("kind") != "full" or job.get("status") != "completed":
+        return 0.0
+    with database() as db:
+        row = db.execute(
+            "SELECT position FROM study WHERE user_id=? AND job_id=? AND updated>opened "
+            "ORDER BY updated DESC LIMIT 1",
+            (user["id"], job["id"]),
+        ).fetchone()
+    position = max(0.0, float(row["position"])) if row else 0.0
+    duration = max(0.0, float(job.get("duration") or 0))
+    return position if 2 <= position < duration - 1 else 0.0
 
 
 def statistics(user):

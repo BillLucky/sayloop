@@ -1,5 +1,7 @@
+import { requestId } from './request-id.js';
 import { cachedAudio, saveAudio, removeAudio, adoptLegacyAudio } from './audio-cache.js';
 import { PracticePlayer, shortcutAction } from './practice-player.js';
+import { readyRecordings, matchingMaterials, hasLibraryFilters } from './library.js';
 import { closeSheets, initNavigation, openSheet, syncNavigation } from './navigation.js';
 import {
   authenticate,
@@ -69,6 +71,25 @@ const state = {
   practiceId: null,
 };
 let toastTimer;
+let studioEpoch = 0;
+let studioSubmitting = false;
+let studioSessionActive = true;
+let pendingGeneration;
+let jobMutationEpoch = 0;
+let jobsReadSequence = 0;
+const pendingVoiceSamples = new Set();
+const pendingRetries = new Map();
+const sampleAttempts = new Map();
+const retryAttempts = new Map();
+let studioDraftTimer;
+window.addEventListener('sayloop:logout', () => {
+  studioSessionActive = false;
+  audio.pause();
+  audioLoadSequence += 1;
+  clearTimeout(studioDraftTimer);
+  studioEpoch += 1;
+  pendingGeneration = null;
+});
 function toast(message, error = false) {
   $('#toast').textContent = message;
   $('#toast').hidden = false;
@@ -79,7 +100,8 @@ function toast(message, error = false) {
 async function api(path, options) {
   const response = await fetch(`/api${path}`, options);
   if (!response.ok) {
-    if (response.status === 401 && state.user && path !== '/auth/login') location.reload();
+    if (response.status === 401 && state.user && !state.loggingOut && path !== '/auth/login')
+      location.reload();
     const error = await response.json().catch(() => ({}));
     const detail =
       typeof error.detail === 'string' ? error.detail : error.detail?.map((e) => e.msg).join('; ');
@@ -99,12 +121,16 @@ const safely =
     try {
       await fn(...args);
     } catch (error) {
-      toast(error.message, true);
+      if (error.name !== 'AbortError' && !state.loggingOut) toast(error.message, true);
     }
   };
-function showView(view) {
+const viewScroll = new Map();
+function showView(view, { restoreScroll = false } = {}) {
   if (!['library', 'studio', 'voices', 'practice', 'authoring', 'progress'].includes(view))
     view = 'library';
+  const previous = state.view;
+  if (previous !== view && !document.body.classList.contains('is-immersive'))
+    viewScroll.set(previous, scrollY);
   state.view = view;
   closeSheets();
   if (view !== 'practice') setImmersive(false);
@@ -119,7 +145,7 @@ function showView(view) {
     progress: '学习进度',
   }[view];
   history.replaceState(null, '', `#${view}`);
-  window.scrollTo({ top: 0 });
+  window.scrollTo({ top: restoreScroll && previous !== view ? viewScroll.get(view) || 0 : 0 });
   if (view === 'progress' && state.user)
     void refreshProgress().catch((error) => toast(error.message, true));
 }
@@ -136,33 +162,18 @@ function renderLibrary() {
       .filter((j) => j.kind === 'full' && j.status === 'completed')
       .reduce((sum, j) => sum + j.duration, 0) / 60
   );
-  const search = $('#search').value.toLowerCase();
-  const materials = state.materials
-    .filter((m) => {
-      const ready = !!fullJob(m);
-      return (
-        (m.archived
-          ? $('#library-scope').value === 'archived'
-          : $('#library-scope').value !== 'archived') &&
-        (!$('#library-language').value || m.language === $('#library-language').value) &&
-        (!$('#library-kind').value ||
-          ($('#library-kind').value === 'dialogue' ? m.turns?.length : !m.turns?.length)) &&
-        (!$('#library-scope').value ||
-          $('#library-scope').value === 'archived' ||
-          ($('#library-scope').value === 'mine'
-            ? m.owned
-            : $('#library-scope').value === 'shared'
-              ? m.visibility === 'shared'
-              : m.favorite)) &&
-        (state.filter === 'all' || (state.filter === 'ready' ? ready : !ready)) &&
-        `${m.title} ${m.text} ${(m.tags || []).join(' ')}`.toLowerCase().includes(search)
-      );
-    })
-    .sort((a, b) =>
-      $('#library-sort').value === 'title'
-        ? a.title.localeCompare(b.title)
-        : (b.created_at || '').localeCompare(a.created_at || '')
-    );
+  const filters = {
+    query: $('#search').value,
+    language: $('#library-language').value,
+    kind: $('#library-kind').value,
+    scope: $('#library-scope').value,
+    sort: $('#library-sort').value,
+    status: state.filter,
+  };
+  const ready = readyRecordings(state.jobs);
+  const materials = matchingMaterials(state.materials, ready, filters);
+  const filtered = hasLibraryFilters(filters);
+  $('#clear-library-filters').hidden = !filtered;
   $('#library-count').textContent = materials.length;
   const filterCount =
     ['library-language', 'library-kind', 'library-scope'].filter((id) => $(`#${id}`).value).length +
@@ -173,13 +184,36 @@ function renderLibrary() {
   $('#material-grid').innerHTML =
     materials
       .slice(0, state.libraryLimit || 24)
-      .map((m) => {
-        const job = fullJob(m);
-        return `<article class="material-card"><div class="card-top"><span class="document-icon">${icon(m.turns?.length ? 'headphones' : 'file')}</span><span class="card-state ${job ? '' : 'draft'}">${icon(job ? 'check' : 'file')}${job ? '可练习' : '待配音'}</span></div><h3 class="card-title"><button class="material-open" data-open="${m.id}">${m.favorite ? '☆ ' : ''}${escape(m.title)}</button></h3><div class="card-subtitle">${escape(state.languages[m.language] || m.language)} · ${m.words.toLocaleString()} 词${job ? ` · ${time(job.duration)}` : ''}</div><div class="material-tags">${m.turns?.length ? '<span>角色对话</span>' : ''}${m.visibility === 'shared' ? '<span>已共享</span>' : ''}${(m.tags || []).map((tag) => `<span>${escape(tag)}</span>`).join('')}</div><p class="card-excerpt">${escape(m.text.slice(0, 180))}${m.text.length > 180 ? '…' : ''}</p><div class="card-bottom">${job ? `<button class="button secondary" data-practice="${job.id}">${icon('play')}开始练习</button>` : `<button class="button secondary" data-open="${m.id}">${icon('wave')}制作语音</button>`}<button class="icon-button" data-material-menu="${m.id}" aria-label="${escape(m.title)}的更多操作">${icon('more')}</button></div></article>`;
-      })
+      .map((material) => renderMaterialCard(material, ready.get(material.id)))
       .join('') ||
-    `<div class="empty-state">${icon('library')}<h3>${search || state.filter !== 'all' ? '没有找到匹配的语料' : '从自己的表达开始'}</h3><p>${search || state.filter !== 'all' ? '试试其他关键词，或调整筛选条件。' : '写一段想说的话，或导入已有文本。'}</p></div>`;
+    `<div class="empty-state">${icon('library')}<h3>${filtered ? '没有找到匹配的语料' : '从自己的表达开始'}</h3><p>${filtered ? '试试其他关键词，或清除筛选条件。' : '写一段想说的话，或导入已有文本。'}</p>${filtered ? '<button class="button secondary" data-clear-library>清除筛选</button>' : ''}</div>`;
 }
+function renderMaterialCard(material, job) {
+  const tags = (material.tags || []).map((tag) => `<span>${escape(tag)}</span>`).join('');
+  const primary = job
+    ? `<button class="button secondary" data-practice="${job.id}">${icon('play')}开始练习</button>`
+    : `<button class="button secondary" data-open="${material.id}">${icon('wave')}制作语音</button>`;
+  return `
+    <article class="material-card">
+      <div class="card-top">
+        <span class="document-icon">${icon(material.turns?.length ? 'headphones' : 'file')}</span>
+        <span class="card-state ${job ? '' : 'draft'}">${icon(job ? 'check' : 'file')}${job ? '可练习' : '待配音'}</span>
+      </div>
+      <h3 class="card-title"><button class="material-open" data-open="${material.id}">${material.favorite ? '☆ ' : ''}${escape(material.title)}</button></h3>
+      <div class="card-subtitle">${escape(state.languages[material.language] || material.language)} · ${material.words.toLocaleString()} 词${job ? ` · ${time(job.duration)}` : ''}</div>
+      <div class="material-tags">
+        ${material.turns?.length ? '<span>角色对话</span>' : ''}
+        ${material.visibility === 'shared' ? '<span>已共享</span>' : ''}
+        ${tags}
+      </div>
+      <p class="card-excerpt">${escape(material.text.slice(0, 180))}${material.text.length > 180 ? '…' : ''}</p>
+      <div class="card-bottom">
+        ${primary}
+        <button class="icon-button" data-material-menu="${material.id}" aria-label="${escape(material.title)}的更多操作">${icon('more')}</button>
+      </div>
+    </article>`;
+}
+
 function showMaterialMenu(material) {
   if (!material) return;
   const job = fullJob(material);
@@ -220,13 +254,24 @@ function renderJobs() {
         const action = ready
           ? `<button class="button secondary" ${job.kind === 'full' ? 'data-practice' : 'data-play'}="${job.id}">${job.kind === 'full' ? '开始练习' : '试听'}</button><button class="icon-button" data-recording-menu="${job.id}" aria-label="${escape(job.title)}的录音操作">${icon('more')}</button>`
           : ['failed', 'interrupted'].includes(job.status)
-            ? `<button class="button secondary" data-retry="${job.id}">重新生成</button>`
+            ? `<button class="button secondary" data-retry="${job.id}" ${pendingRetries.has(job.id) ? 'disabled' : ''}>${pendingRetries.has(job.id) ? '已重新排队' : '重新生成'}</button>`
             : '';
         return `<div class="job-row"><span class="document-icon">${icon(job.kind === 'preview' ? 'wave' : 'music')}</span><div class="job-info"><strong>${escape(job.title)}</strong><small>${escape(job.voice)} · ${job.kind === 'preview' ? '试听' : '完整录音'} · ${job.speed}× · ${ready ? time(job.duration) : statusNames[job.status]}${job.status === 'running' ? ` ${job.progress}%` : ''}</small>${['queued', 'running'].includes(job.status) ? `<div class="job-progress"><span style="width:${job.progress}%"></span></div>` : ''}${job.error ? `<small class="error">${escape(job.error)}</small>` : ''}</div>${action}</div>`;
       })
       .join('') || '<div class="empty-state"><p>还没有录音，先生成一段试听吧。</p></div>';
 }
 function renderVoices() {
+  const samples = new Map();
+  for (const job of state.jobs) {
+    if (
+      job.owned &&
+      !job.material_id &&
+      job.kind === 'preview' &&
+      ['completed', 'queued', 'running'].includes(job.status) &&
+      !samples.has(job.voice)
+    )
+      samples.set(job.voice, job);
+  }
   $('#voice-grid').innerHTML = state.voices
     .filter(
       (v) =>
@@ -234,10 +279,10 @@ function renderVoices() {
         (!$('#voice-gender').value || v.gender === $('#voice-gender').value)
     )
     .map((v) => {
-      const job = state.jobs.find(
-        (j) => j.kind === 'preview' && j.voice === v.id && j.status === 'completed'
-      );
-      return `<article class="voice-card ${v.id === $('#voice').value ? 'selected' : ''}"><div class="card-top"><span class="voice-avatar">${v.name[0]}</span><div><h3>${v.name}</h3><small>${escape(state.languages[v.language])} · ${v.gender === 'female' ? '女声' : '男声'}</small></div></div><p>${escape(v.note)}</p><div class="card-bottom">${job ? `<button class="button secondary" data-play="${job.id}">${icon('play')}试听</button>` : `<button class="button secondary" data-sample="${v.id}">${icon('play')}生成试听</button>`}<button class="text-button" data-choose-voice="${v.id}">${v.id === $('#voice').value ? '已选用 ✓' : '选用声音'}</button></div></article>`;
+      const job = samples.get(v.id);
+      const ready = job?.status === 'completed';
+      const pending = pendingVoiceSamples.has(v.id) || (job && !ready);
+      return `<article class="voice-card ${v.id === $('#voice').value ? 'selected' : ''}"><div class="card-top"><span class="voice-avatar">${v.name[0]}</span><div><h3>${v.name}</h3><small>${escape(state.languages[v.language])} · ${v.gender === 'female' ? '女声' : '男声'}</small></div></div><p>${escape(v.note)}</p><div class="card-bottom">${ready ? `<button class="button secondary" data-play="${job.id}">${icon('play')}试听</button>` : `<button class="button secondary" data-sample="${v.id}" ${pending ? 'disabled' : ''}>${icon('play')}${pending ? '生成中…' : '生成试听'}</button>`}<button class="text-button" data-choose-voice="${v.id}">${v.id === $('#voice').value ? '已选用 ✓' : '选用声音'}</button></div></article>`;
     })
     .join('');
 }
@@ -259,6 +304,7 @@ function refreshViews() {
   renderJobs();
   renderVoices();
   renderPracticeOptions();
+  syncStudioActions();
 }
 function updateVoiceSelect(preferred) {
   const voices = state.voices.filter((v) => v.language === $('#language').value);
@@ -281,6 +327,15 @@ function updateCount() {
     `${text ? text.split(/\s+/).length.toLocaleString() : 0} 词 · ${text.length.toLocaleString()} 字`;
 }
 function rememberDraft() {
+  if (!studioSessionActive) return;
+  syncStudioActions();
+  clearTimeout(studioDraftTimer);
+  studioDraftTimer = setTimeout(persistStudioDraft, 200);
+}
+window.addEventListener('pagehide', () => persistStudioDraft());
+function persistStudioDraft() {
+  clearTimeout(studioDraftTimer);
+  if (!studioSessionActive) return;
   try {
     localStorage.setItem(
       `llh-draft-${state.user.id}`,
@@ -293,6 +348,7 @@ function rememberDraft() {
         voice_b: $('#voice-b').value,
         speed: $('#speed').value,
         pause: $('#pause').value,
+        pendingGeneration,
       })
     );
   } catch {}
@@ -307,6 +363,7 @@ function syncDialogueControls(material) {
     : '';
 }
 function openMaterial(id) {
+  studioEpoch += 1;
   const material = state.materials.find((m) => m.id === id);
   if (!material) return;
   state.materialId = id;
@@ -321,6 +378,7 @@ function openMaterial(id) {
   showView('studio');
 }
 function newMaterial() {
+  studioEpoch += 1;
   state.materialId = null;
   $('#material-title').value = '';
   $('#editor').value = '';
@@ -331,44 +389,156 @@ function newMaterial() {
   showView('studio');
   $('#material-title').focus();
 }
+function adoptJob(job) {
+  if (!studioSessionActive) return;
+  jobMutationEpoch += 1;
+  state.jobs = [{ ...job, owned: true }, ...state.jobs.filter((item) => item.id !== job.id)];
+  refreshViews();
+}
+
 async function refreshJobs() {
-  const oldCompleted = new Set(state.jobs.filter((j) => j.status === 'completed').map((j) => j.id));
-  const jobs = await api('/generations');
+  const sequence = ++jobsReadSequence;
+  const epoch = jobMutationEpoch;
+  let jobs;
+  try {
+    jobs = await api('/generations');
+  } catch (error) {
+    if (epoch !== jobMutationEpoch || sequence !== jobsReadSequence || !studioSessionActive) return;
+    throw error;
+  }
+  if (epoch !== jobMutationEpoch || sequence !== jobsReadSequence || !studioSessionActive) return;
+  const oldCompleted = new Set(
+    state.jobs.filter((job) => job.status === 'completed').map((job) => job.id)
+  );
   $('#engine-status').textContent = '语音服务已就绪';
   if (JSON.stringify(jobs) === JSON.stringify(state.jobs)) return;
   state.jobs = jobs;
-  if (state.jobs.some((j) => j.status === 'completed' && !oldCompleted.has(j.id)))
+  if (jobs.some((job) => job.status === 'completed' && !oldCompleted.has(job.id)))
     toast('新录音已生成，可以试听了。');
   refreshViews();
 }
-async function generate(kind, voiceOverride) {
+
+function studioSnapshot(voiceOverride) {
   const text = $('#editor').value.trim();
-  if (!text) throw new Error('Add some text or select a material first.');
-  const buttons = [$('#preview'), $('#generate')];
-  buttons.forEach((b) => (b.disabled = true));
+  const source = state.materials.find((material) => material.id === state.materialId);
+  const dialogue = source?.turns?.length && source.text === text;
+  return {
+    epoch: studioEpoch,
+    materialId: state.materialId,
+    title: $('#material-title').value.trim() || 'Untitled material',
+    text,
+    language: voiceOverride ? voiceOverride[0] : $('#language').value,
+    voice: voiceOverride || $('#voice').value,
+    voice_b: dialogue ? $('#voice-b').value : null,
+    speed: Number($('#speed').value),
+    pause: Number($('#pause').value),
+    tags: source?.tags || [],
+    turns: dialogue ? structuredClone(source.turns) : [],
+    role_a: dialogue ? source.role_a : 'A',
+    role_b: dialogue ? source.role_b : 'B',
+    composition_id: source?.owned ? source.composition_id || null : null,
+  };
+}
+
+function matchingRecording(materialId, settings, kind) {
+  return state.jobs.find(
+    (job) =>
+      job.owned &&
+      job.material_id === materialId &&
+      job.kind === kind &&
+      ['completed', 'queued', 'running'].includes(job.status) &&
+      job.title === settings.title &&
+      job.voice === settings.voice &&
+      (job.voice_b || job.voice) === (settings.voice_b || settings.voice) &&
+      Number(job.speed) === settings.speed &&
+      Number(job.pause) === settings.pause
+  );
+}
+
+function syncStudioActions() {
+  if (studioSubmitting || !state.user) return;
+  const snapshot = studioSnapshot();
+  const material = state.materials.find(
+    (item) =>
+      item.id === state.materialId &&
+      item.owned &&
+      item.visibility !== 'shared' &&
+      !item.archived &&
+      item.title === snapshot.title &&
+      item.text === snapshot.text &&
+      item.language === snapshot.language
+  );
+  const preview = material && matchingRecording(material.id, snapshot, 'preview');
+  const full = material && matchingRecording(material.id, snapshot, 'full');
+  $('#preview').innerHTML =
+    `${icon('play')}${preview?.status === 'completed' ? (state.currentJob?.id === preview.id && !audio.paused ? '暂停试听' : '播放已有试听') : preview ? '试听生成中…' : '先试听'}`;
+  $('#generate').innerHTML =
+    `${icon(full?.status === 'completed' ? 'book' : 'spark')}${full?.status === 'completed' ? '继续练习' : full ? '完整录音生成中…' : '生成完整录音'}`;
+}
+
+function lockStudio(locked) {
+  studioSubmitting = locked;
+  $('.editor-panel').inert = locked;
+  $('.settings-panel').inert = locked;
+  for (const id of ['preview', 'generate', 'save-material']) $(`#${id}`).disabled = locked;
+  if (!locked) syncStudioActions();
+}
+
+async function generate(kind, voiceOverride) {
+  if (studioSubmitting || !studioSessionActive) return;
+  const snapshot = studioSnapshot(voiceOverride);
+  if (!snapshot.text) throw new Error('请先写下用于配音的文字，或选择一份语料。');
+  lockStudio(true);
   try {
-    const material = await saveDraft();
-    await post('/generations', {
+    const material = await saveDraft(snapshot);
+    if (!studioSessionActive) return;
+    const body = {
       text: material.text,
       title: material.title,
-      language: voiceOverride ? voiceOverride[0] : $('#language').value,
-      voice: voiceOverride || $('#voice').value,
-      voice_b: $('#voice-b-row').hidden ? null : $('#voice-b').value,
-      speed: Number($('#speed').value),
-      pause: Number($('#pause').value),
+      language: snapshot.language,
+      voice: snapshot.voice,
+      voice_b: snapshot.voice_b,
+      speed: snapshot.speed,
+      pause: snapshot.pause,
       kind,
       material_id: material.id,
-    });
+    };
+    const reusable = matchingRecording(material.id, body, kind);
+    if (reusable) {
+      pendingGeneration = null;
+      rememberDraft();
+      if (reusable.status === 'completed') {
+        if (kind === 'full') await practice(reusable.id);
+        else if (state.currentJob?.id === reusable.id) await transport.toggle();
+        else await loadAudio(reusable.id);
+      } else toast('这份录音正在生成，可在录音版本中查看进度。');
+      return;
+    }
+    const payload = JSON.stringify(body);
+    if (!pendingGeneration || pendingGeneration.payload !== payload) {
+      pendingGeneration = { id: requestId(), payload };
+    }
+    rememberDraft();
+    const accepted = await post('/generations', { ...body, request_id: pendingGeneration.id });
+    if (!studioSessionActive) return;
+    pendingGeneration = null;
+    adoptJob(accepted);
+    rememberDraft();
     toast(kind === 'preview' ? '试听已排队，可以继续编辑。' : '完整录音已排队，完成后会通知你。');
-    await refreshJobs();
+    void refreshJobs().catch(() => {
+      $('#engine-status').textContent = '录音已受理，正在恢复状态连接…';
+    });
   } finally {
-    buttons.forEach((b) => (b.disabled = false));
+    lockStudio(false);
   }
 }
 
 const audio = $('#audio');
 let lastFollow = -1;
 const transport = new PracticePlayer(audio, renderPractice);
+audio.addEventListener('play', syncStudioActions);
+audio.addEventListener('pause', syncStudioActions);
+audio.addEventListener('ended', syncStudioActions);
 
 function renderPractice() {
   const { index, segments, waiting, mode } = transport;
@@ -452,16 +622,52 @@ function setImmersive(enabled) {
   }
 }
 
+async function ensurePracticeRecording() {
+  const identifier = state.practiceId;
+  if (!identifier || state.view !== 'practice') return false;
+  if (state.currentJob?.id === identifier) {
+    if (!transport.segments.length) {
+      const position = audio.ended ? 0 : transport.position;
+      transport.load(state.currentJob.segments);
+      transport.seek(position);
+    }
+    return true;
+  }
+  const job = await loadAudio(identifier, false);
+  if (
+    !job ||
+    state.currentJob?.id !== identifier ||
+    state.practiceId !== identifier ||
+    state.view !== 'practice'
+  )
+    return false;
+  transport.load(job.segments);
+  transport.seek(Number.isFinite(job.resume_position) ? job.resume_position : 0);
+  return true;
+}
+
 async function practiceAction(action) {
   if (action === 'escape') {
     setImmersive(false);
     return;
   }
   if (action === 'focus') {
+    if (!state.practiceId) {
+      toast('先选择一份完整录音，再进入专注练习。');
+      return;
+    }
+    if (!document.body.classList.contains('is-immersive') && !(await ensurePracticeRecording()))
+      return;
     setImmersive(!document.body.classList.contains('is-immersive'));
     return;
   }
   if (!state.currentJob) return;
+  if (action === 'restart') {
+    if (!(await ensurePracticeRecording())) return;
+    transport.seek(0);
+    $('#practice-resume').hidden = true;
+    return;
+  }
   if (action === 'toggle') return transport.toggle();
   if (state.currentJob.id !== state.practiceId) return;
   const index =
@@ -516,15 +722,16 @@ $('#remove-device').addEventListener(
   })
 );
 async function loadAudio(id, autoplay = true) {
+  const sequence = ++audioLoadSequence;
   if (state.currentJob?.id !== id) {
-    const sequence = ++audioLoadSequence;
     audio.pause();
     const job = await api(`/generations/${id}`);
+    if (sequence !== audioLoadSequence || !studioSessionActive) return null;
     if (job.status !== 'completed') throw new Error('This recording is not ready yet.');
     const blob =
       (await cachedAudio(job.audio_url).catch(() => null)) ||
       (await adoptLegacyAudio(job.audio_url).catch(() => null));
-    if (sequence !== audioLoadSequence) throw new Error('Another recording was selected.');
+    if (sequence !== audioLoadSequence) return null;
     state.currentJob = job;
     state.segment = -1;
     if (activeBlobUrl) URL.revokeObjectURL(activeBlobUrl);
@@ -547,7 +754,9 @@ async function loadAudio(id, autoplay = true) {
   return state.currentJob;
 }
 async function practice(id) {
+  const fresh = state.currentJob?.id !== id;
   const job = await loadAudio(id, false);
+  if (!job || state.currentJob?.id !== id) return;
   state.practiceId = id;
   $('#practice-recording').value = id;
   lastFollow = -1;
@@ -558,8 +767,14 @@ async function practice(id) {
     )
     .join('');
   showView('practice');
+  const previousPosition = transport.position;
   transport.load(job.segments);
-  transport.seek(audio.currentTime || 0);
+  const savedPosition = Number.isFinite(job.resume_position) ? job.resume_position : 0;
+  transport.seek(fresh ? savedPosition : previousPosition);
+  if (fresh) {
+    $('#practice-resume').hidden = savedPosition <= 0;
+    $('#practice-resume-label').textContent = `上次练到 ${time(savedPosition)}`;
+  }
 }
 window.addEventListener('hashchange', () => showView(location.hash.slice(1)));
 document.addEventListener(
@@ -585,7 +800,11 @@ document.addEventListener(
       rememberPreferences();
       return;
     }
-    if (target.dataset.view) showView(target.dataset.view);
+    if (target.hasAttribute('data-clear-library')) {
+      clearLibraryFilters();
+      return;
+    }
+    if (target.dataset.view) showView(target.dataset.view, { restoreScroll: true });
     if (target.dataset.open) openMaterial(target.dataset.open);
     if (target.dataset.manage)
       manageMaterial(state.materials.find((m) => m.id === target.dataset.manage));
@@ -600,71 +819,119 @@ document.addEventListener(
       renderLibrary();
     }
     if (target.dataset.chooseVoice) {
+      studioEpoch += 1;
       $('#language').value = target.dataset.chooseVoice[0];
       updateVoiceSelect(target.dataset.chooseVoice);
+      rememberDraft();
       renderVoices();
       showView('studio');
       toast(`${target.dataset.chooseVoice.slice(3)} selected. Your text is ready when you are.`);
     }
     if (target.dataset.sample) {
       const voice = target.dataset.sample;
-      const samples = {
-        a: 'Could we go over the delivery schedule together? I would like to make sure we have enough time.',
-        b: 'Could we go over the delivery schedule together?',
-        z: '我们可以一起确认一下交付时间吗？我希望预留充分的时间。',
-        e: '¿Podemos revisar juntos el calendario de entrega?',
-        f: 'Pouvons-nous revoir ensemble le calendrier de livraison ?',
-        h: 'क्या हम समय के बारे में बात कर सकते हैं?',
-        i: 'Possiamo rivedere insieme il programma di consegna?',
-        j: '納品の日程を一緒に確認できますか。',
-        p: 'Podemos revisar juntos o cronograma de entrega?',
-      };
-      await post('/generations', {
-        text: samples[voice[0]],
-        title: 'Voice preview',
-        voice,
-        language: voice[0],
-        speed: 0.95,
-        pause: 0.3,
-        kind: 'preview',
-      });
-      toast('试听已排队。');
-      await refreshJobs();
+      if (pendingVoiceSamples.has(voice)) return;
+      pendingVoiceSamples.add(voice);
+      target.disabled = true;
+      if (!sampleAttempts.has(voice)) sampleAttempts.set(voice, requestId());
+      try {
+        const samples = {
+          a: 'Could we go over the delivery schedule together? I would like to make sure we have enough time.',
+          b: 'Could we go over the delivery schedule together?',
+          z: '我们可以一起确认一下交付时间吗？我希望预留充分的时间。',
+          e: '¿Podemos revisar juntos el calendario de entrega?',
+          f: 'Pouvons-nous revoir ensemble le calendrier de livraison ?',
+          h: 'क्या हम समय के बारे में बात कर सकते हैं?',
+          i: 'Possiamo rivedere insieme il programma di consegna?',
+          j: '納品の日程を一緒に確認できますか。',
+          p: 'Podemos revisar juntos o cronograma de entrega?',
+        };
+        const accepted = await post('/generations', {
+          request_id: sampleAttempts.get(voice),
+          text: samples[voice[0]],
+          title: 'Voice preview',
+          voice,
+          language: voice[0],
+          speed: 0.95,
+          pause: 0.3,
+          kind: 'preview',
+        });
+        sampleAttempts.delete(voice);
+        adoptJob(accepted);
+        toast('试听已排队。');
+      } finally {
+        pendingVoiceSamples.delete(voice);
+        renderVoices();
+      }
     }
     if (target.dataset.retry) {
-      const job = await api(`/generations/${target.dataset.retry}`);
-      await post('/generations', {
-        text: job.text,
-        title: job.title,
-        voice: job.voice,
-        voice_b: job.voice_b || null,
-        language: job.voice[0],
-        speed: job.speed,
-        pause: job.pause,
-        kind: job.kind,
-        material_id: job.material_id,
-      });
-      toast('已重新加入生成队列。');
-      await refreshJobs();
+      if (pendingRetries.has(target.dataset.retry)) return;
+      pendingRetries.set(target.dataset.retry, true);
+      target.disabled = true;
+      try {
+        const job = await api(`/generations/${target.dataset.retry}`);
+        if (!retryAttempts.has(job.id)) retryAttempts.set(job.id, requestId());
+        const accepted = await post('/generations', {
+          request_id: retryAttempts.get(job.id),
+          text: job.text,
+          title: job.title,
+          voice: job.voice,
+          voice_b: job.voice_b || null,
+          language: job.voice[0],
+          speed: job.speed,
+          pause: job.pause,
+          kind: job.kind,
+          material_id: job.material_id,
+        });
+        retryAttempts.delete(job.id);
+        pendingRetries.set(target.dataset.retry, accepted.id);
+        adoptJob(accepted);
+        toast('已重新加入生成队列。');
+      } catch (error) {
+        pendingRetries.delete(target.dataset.retry);
+        target.disabled = false;
+        throw error;
+      }
     }
     if (target.dataset.segment !== undefined) {
+      $('#practice-resume').hidden = true;
       if (state.currentJob?.id !== state.practiceId) await loadAudio(state.practiceId, false);
       if (!transport.segments.length) transport.load(state.currentJob.segments);
       await transport.playSentence(Number(target.dataset.segment));
     }
   })
 );
-$('#search').addEventListener('input', () => {
+function clearLibraryFilters() {
+  clearTimeout(searchTimer);
+  $('#search').value = '';
+  for (const id of ['library-language', 'library-kind', 'library-scope']) $(`#${id}`).value = '';
+  $('#library-sort').value = 'new';
+  state.filter = 'all';
   state.libraryLimit = 24;
+  $$('[data-filter]').forEach((button) =>
+    button.classList.toggle('active', button.dataset.filter === 'all')
+  );
   renderLibrary();
-});
+  $('#search').focus({ preventScroll: true });
+}
+let searchTimer;
+function searchLibrary(event) {
+  clearTimeout(searchTimer);
+  if (event.isComposing) return;
+  state.libraryLimit = 24;
+  searchTimer = setTimeout(renderLibrary, 120);
+}
+$('#search').addEventListener('input', searchLibrary);
+$('#search').addEventListener('compositionend', searchLibrary);
 $('#library-load-more').onclick = () => {
   state.libraryLimit = (state.libraryLimit || 24) + 24;
   renderLibrary();
 };
-['library-language', 'library-kind', 'library-scope', 'library-sort'].forEach(
-  (id) => ($(`#${id}`).onchange = renderLibrary)
-);
+['library-language', 'library-kind', 'library-scope', 'library-sort'].forEach((id) => {
+  $(`#${id}`).onchange = () => {
+    state.libraryLimit = 24;
+    renderLibrary();
+  };
+});
 ['voice-language', 'voice-gender'].forEach((id) => ($(`#${id}`).onchange = renderVoices));
 $('#new-material').onclick = newMaterial;
 $('#hero-start').onclick = () => showView('authoring');
@@ -674,64 +941,95 @@ $('#all-voices').onclick = () => {
   $('#language').focus();
 };
 $('#language').onchange = () => {
+  studioEpoch += 1;
   updateVoiceSelect();
   rememberDraft();
 };
-$('#voice-b').onchange = rememberDraft;
+$('#voice-b').onchange = () => {
+  studioEpoch += 1;
+  rememberDraft();
+};
 $('#voice').onchange = () => {
+  studioEpoch += 1;
   updateVoiceNote();
   renderVoices();
   rememberDraft();
 };
 $('#speed').oninput = () => {
+  studioEpoch += 1;
   $('#speed-value').textContent = `${Number($('#speed').value).toFixed(2)}×`;
   rememberDraft();
 };
 $('#pause').oninput = () => {
+  studioEpoch += 1;
   $('#pause-value').textContent = `${$('#pause').value}s`;
   rememberDraft();
 };
 $('#editor').oninput = () => {
+  studioEpoch += 1;
   updateCount();
   rememberDraft();
 };
-$('#material-title').oninput = rememberDraft;
+$('#material-title').oninput = () => {
+  studioEpoch += 1;
+  rememberDraft();
+};
 $('#preview').onclick = safely(() => generate('preview'));
 $('#generate').onclick = safely(() => generate('full'));
-async function saveDraft() {
-  const title = $('#material-title').value.trim() || 'Untitled material';
-  const text = $('#editor').value.trim();
-  if (!text) throw new Error('Add some text before saving.');
-  const existing = state.materials.find(
-    (m) => m.title === title && m.text === text && m.language === $('#language').value
-  );
-  if (existing) {
-    state.materialId = existing.id;
-    renderJobs();
-    return existing;
-  }
-  const source = state.materials.find((material) => material.id === state.materialId);
-  const dialogue =
-    source?.turns?.length && source.text === text
-      ? { turns: source.turns, role_a: source.role_a, role_b: source.role_b }
-      : {};
+async function saveDraft(snapshot = studioSnapshot()) {
+  if (!snapshot.text) throw new Error('请先写下用于配音的文字。');
+  const sameSnapshot = (material) =>
+    material.owned &&
+    material.visibility !== 'shared' &&
+    !material.archived &&
+    material.title === snapshot.title &&
+    material.text === snapshot.text &&
+    material.language === snapshot.language &&
+    JSON.stringify(material.tags || []) === JSON.stringify(snapshot.tags) &&
+    JSON.stringify(material.turns || []) === JSON.stringify(snapshot.turns) &&
+    (material.role_a || 'A') === snapshot.role_a &&
+    (material.role_b || 'B') === snapshot.role_b &&
+    (material.composition_id || null) === snapshot.composition_id;
+  const existing =
+    state.materials.find(
+      (material) => material.id === snapshot.materialId && sameSnapshot(material)
+    ) || state.materials.find(sameSnapshot);
+  if (existing) return existing;
   const material = await post('/materials', {
-    title,
-    text,
-    language: $('#language').value,
-    ...dialogue,
+    title: snapshot.title,
+    text: snapshot.text,
+    language: snapshot.language,
+    tags: snapshot.tags,
+    turns: snapshot.turns,
+    role_a: snapshot.role_a,
+    role_b: snapshot.role_b,
+    composition_id: snapshot.composition_id,
+    reuse: true,
   });
-  state.materials = await api('/materials');
-  state.materialId = material.id;
-  $('#editor').value = material.text;
-  updateCount();
+  if (!studioSessionActive) return material;
+  state.materials = [
+    { ...material, owned: true },
+    ...state.materials.filter((item) => item.id !== material.id),
+  ];
+  if (studioEpoch === snapshot.epoch) {
+    state.materialId = material.id;
+    $('#editor').value = material.text;
+    syncDialogueControls(material);
+    updateCount();
+    rememberDraft();
+  }
   refreshViews();
-  rememberDraft();
   return material;
 }
 $('#save-material').onclick = safely(async () => {
-  await saveDraft();
-  toast('已保存到语料库，原有版本仍保留。');
+  if (studioSubmitting) return;
+  lockStudio(true);
+  try {
+    await saveDraft();
+    if (studioSessionActive) toast('语料已保存，原有版本仍保留。');
+  } finally {
+    lockStudio(false);
+  }
 });
 $('#import-button').onclick = $('#studio-import').onclick = () => $('#file-input').click();
 $('#file-input').onchange = safely(async () => {
@@ -783,7 +1081,10 @@ audio.ontimeupdate = () => {
   $('#current-time').textContent = time(audio.currentTime);
   if (state.currentJob?.id === state.practiceId) transport.tick();
 };
-$('#seek').oninput = () => transport.seek(Number($('#seek').value));
+$('#seek').oninput = () => {
+  $('#practice-resume').hidden = true;
+  transport.seek(Number($('#seek').value));
+};
 $('#playback-rate').onchange = () => (audio.playbackRate = Number($('#playback-rate').value));
 $('#repeat').onclick = () => {
   audio.loop = !audio.loop;
@@ -891,6 +1192,7 @@ async function init() {
   try {
     const draft = JSON.parse(localStorage.getItem(`llh-draft-${state.user.id}`) || 'null');
     if (draft) {
+      pendingGeneration = draft.pendingGeneration;
       $('#material-title').value = draft.title;
       $('#editor').value = draft.text;
       state.materialId = materials.some((m) => m.id === draft.materialId) ? draft.materialId : null;

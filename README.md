@@ -15,7 +15,8 @@ Write something you want to say, turn it into speech, and practice one sentence 
 - Explore 54 voices across nine language/accent options, including nine American male voices.
 - Preview up to 25 seconds before generating a full recording.
 - Adjust speaking pace and pauses; download MP3, WAV, or a ZIP of recordings and text.
-- Practice with synchronized sentence highlighting and automatic scrolling.
+- Practice with synchronized sentence highlighting, automatic scrolling, and paused position recovery.
+- Find materials with multi-keyword search and filters; reuse matching recordings instead of generating again.
 - Choose continuous listening, **逐句跟读 (Listen & speak)** (pause after each sentence), or sentence looping.
 - Enter an immersive listening room with large text, muted surrounding sentences, and keyboard controls.
 - Keep your work on disk. Drafts and interface preferences stay in browser storage.

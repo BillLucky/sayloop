@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from .config import DATA
 from .engine import engine
-from .storage import get_job, list_jobs, now, put_job
+from .storage import RequestConflict, get_job, list_jobs, now, put_job
 
 executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="kokoro")
 submit_lock = threading.Lock()
@@ -59,7 +59,33 @@ def run_job(identifier):
 
 def submit(text, title, voice, speed=1.0, pause=0.3, kind="full", material_id=None, **metadata):
     with submit_lock:
-        active = sum(j["status"] in ("queued", "running") for j in list_jobs())
+        jobs = list_jobs()
+        payload = dict(
+            text=text,
+            title=title,
+            voice=voice,
+            speed=speed,
+            pause=pause,
+            kind=kind,
+            material_id=material_id,
+            **metadata,
+        )
+        request_id = metadata.get("request_id")
+        if request_id and metadata.get("owner_id"):
+            previous = next(
+                (
+                    job
+                    for job in jobs
+                    if job.get("owner_id") == metadata["owner_id"]
+                    and job.get("request_id") == request_id
+                ),
+                None,
+            )
+            if previous:
+                if any(previous.get(key) != value for key, value in payload.items()):
+                    raise RequestConflict("请求编号对应的录音设置已改变，请重新提交。")
+                return previous
+        active = sum(j["status"] in ("queued", "running") for j in jobs)
         if active >= 20:
             raise ValueError("The queue is full. Wait for a generation to finish.")
         job = dict(

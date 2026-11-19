@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.3 — 2026-11-19
+
+- Resume a full recording at the current account's last saved position, paused, with a visible return-to-start action. Preserve pending seeks and the selected lesson across media and view changes.
+- Search titles, body text, and tags with normalized multi-keyword matching; index ready recordings once per render, restore library scroll within the current page, and offer a clear-filters action for empty results.
+- Reuse exact owned private material snapshots and matching ready/pending recordings. Preserve intentional copies, freeze submitted voice/text settings, and reject stale list or save responses that would overwrite newer work.
+- Add account-scoped speech request IDs for uncertain-response retries, including voice samples and explicit recording retries.
+- Cancel pending device-cache and draft writes when logging out or changing a password, with same-origin tab retirement where supported. Keep cleanup steps independent when browser storage is unavailable.
+- Add backend, transport, search, cache-race, and desktop/phone workflow regressions; keep personal data and operational evidence outside source history.
+
 ## 0.4.2 — 2026-11-19
 
 - Simplify authoring to source text and one primary action; reveal relevant language/style and optional settings on demand. Focus the empty desktop editor and keep phone actions within reach.

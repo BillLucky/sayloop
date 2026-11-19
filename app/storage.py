@@ -9,6 +9,11 @@ from .config import DATA, ensure_dirs
 from .text import clean_text
 
 _lock = threading.RLock()
+IDENTIFIER_PATTERN = "^[a-f0-9]{32}$"
+
+
+class RequestConflict(ValueError):
+    """A scoped retry key already identifies different submitted content."""
 
 
 def now():
@@ -28,7 +33,7 @@ def read_json(path: Path):
 
 
 def valid_id(value):
-    if not re.fullmatch(r"[a-f0-9]{32}", value):
+    if not re.fullmatch(IDENTIFIER_PATTERN, value):
         raise ValueError("Invalid identifier")
     return value
 
@@ -46,23 +51,37 @@ def list_materials():
     )
 
 
-def save_material(title, text, language="a", source="Text editor", **metadata):
+def save_material(title, text, language="a", source="Text editor", reuse=False, **metadata):
     ensure_dirs()
     text = clean_text(text)
     if not text:
         raise ValueError("Please add some text before saving.")
-    item = dict(
-        id=uuid.uuid4().hex,
+    snapshot = dict(
         title=title.strip()[:160] or "Untitled material",
         text=text,
         language=language,
         source=source,
-        created_at=now(),
-        words=len(text.split()),
-        characters=len(text),
         **metadata,
     )
-    write_json(DATA / "materials" / f"{item['id']}.json", item)
+    defaults = dict(tags=[], turns=[], role_a="A", role_b="B", composition_id=None)
+    # Only exact, explicit-owner private snapshots may be reused. Copies stay opt-in.
+    with _lock:
+        if reuse and metadata.get("owner_id") and metadata.get("visibility") == "private":
+            for existing in list_materials():
+                if existing.get("archived"):
+                    continue
+                if all(
+                    existing.get(key, defaults.get(key)) == value for key, value in snapshot.items()
+                ):
+                    return existing
+        item = dict(
+            id=uuid.uuid4().hex,
+            created_at=now(),
+            words=len(text.split()),
+            characters=len(text),
+            **snapshot,
+        )
+        write_json(DATA / "materials" / f"{item['id']}.json", item)
     return item
 
 

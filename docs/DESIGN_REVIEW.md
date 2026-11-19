@@ -29,3 +29,10 @@ Six warnings concern the product-name heading, authenticated export links, skip 
 **Validate the actual workflow independently.** Chrome acceptance covers desktop and phone layouts, 320/390/768/1024/1440px widths, visible action placement, focus, pending/failure/retry, stale responses, draft recovery, role voices, real playback and saved-audio reuse. The real configured model and offline Kokoro preview chain ran against synthetic isolated data.
 
 **Keep evidence private.** Screenshots and detailed reports remain in ignored project data. Existing public documentation images are unchanged and their exact synthetic blobs are reviewed. Physical phones, Safari, virtual-keyboard viewport behavior and OS background playback are not newly certified.
+
+
+## v0.4.3 utility follow-through
+
+**Reduce repeated work and preserve place.** The existing application layout and visual system remain. Contextual studio actions reuse a ready recording or show pending work. Practice explains the last saved position and offers one restart action. Empty library results expose clear filters; returning to the library restores the current page's reading position.
+
+**Review actual interaction boundaries.** Regression scenarios cover frozen submission settings, intentional-copy identity, delayed list/save/media responses, selected-lesson transport, and local-session retirement. They extend the application acceptance above. No new marketing gate PASS or waiver is claimed; the unchanged unauthenticated screen retains the recorded marketing-checker limitations.

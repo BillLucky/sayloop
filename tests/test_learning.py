@@ -498,3 +498,113 @@ def test_invalid_authoring_retry_key_is_rejected(client):
         "/api/compositions", json=dict(mode="polish", source="合成文本。", request_id="not-an-id")
     )
     assert response.status_code == 422
+
+
+def test_resume_is_account_scoped_and_new_empty_sessions_do_not_hide_progress(client, monkeypatch):
+    material, job = completed_job(client, monkeypatch)
+    user = client.get("/api/auth/me").json()["user"]
+    assert client.get("/api/generations/" + job["id"]).json()["resume_position"] == 0
+    with accounts.database() as db:
+        db.execute(
+            "INSERT INTO study VALUES(?,?,?,?,?,?,?)",
+            (uuid.uuid4().hex, user["id"], job["id"], 100, 110, 5, 5),
+        )
+    client.post("/api/study/sessions", json={"job_id": job["id"]})
+    assert client.get("/api/generations/" + job["id"]).json()["resume_position"] == 5
+    share = dict(title=material["title"], tags=[], visibility="shared")
+    assert client.patch("/api/materials/" + material["id"], json=share).status_code == 200
+    switch_user(client)
+    response = client.get("/api/generations/" + job["id"])
+    assert response.status_code == 200
+    assert response.json()["resume_position"] == 0
+    assert response.json()["owned"] is False
+
+
+def test_resume_restarts_completed_recordings_and_excludes_previews(client, monkeypatch):
+    _, job = completed_job(client, monkeypatch)
+    user = client.get("/api/auth/me").json()["user"]
+    with accounts.database() as db:
+        db.execute(
+            "INSERT INTO study VALUES(?,?,?,?,?,?,?)",
+            (uuid.uuid4().hex, user["id"], job["id"], 100, 110, 5, 9.5),
+        )
+    assert client.get("/api/generations/" + job["id"]).json()["resume_position"] == 0
+    assert accounts.resume_position(user, {**job, "kind": "preview"}) == 0
+
+
+def test_exact_private_material_snapshots_are_reused_only_when_requested(client):
+    body = dict(
+        title="Synthetic snapshot",
+        text="One unchanged idea.",
+        language="a",
+        tags=["test"],
+        reuse=True,
+    )
+    first = client.post("/api/materials", json=body).json()
+    repeated = client.post("/api/materials", json=body).json()
+    assert first["id"] == repeated["id"]
+    changed = client.post("/api/materials", json={**body, "text": "An edited idea."}).json()
+    explicit = client.post("/api/materials", json={**body, "reuse": False}).json()
+    assert len({first["id"], changed["id"], explicit["id"]}) == 3
+    assert client.get("/api/materials").json()[0]["visibility"] == "private"
+
+
+def test_snapshot_reuse_never_reuses_shared_archived_or_foreign_materials(client):
+    body = dict(title="Synthetic scope", text="A reusable phrase.", language="a", reuse=True)
+    first = client.post("/api/materials", json=body).json()
+    client.patch(
+        "/api/materials/" + first["id"],
+        json=dict(title=first["title"], tags=[], visibility="shared"),
+    )
+    private = client.post("/api/materials", json=body).json()
+    assert private["id"] != first["id"] and private["visibility"] == "private"
+    client.patch(
+        "/api/materials/" + private["id"], json=dict(title=private["title"], tags=[], archived=True)
+    )
+    active = client.post("/api/materials", json=body).json()
+    assert active["id"] != private["id"]
+    switch_user(client)
+    foreign = client.post("/api/materials", json=body).json()
+    assert foreign["id"] not in {first["id"], private["id"], active["id"]}
+    assert foreign["visibility"] == "private"
+
+
+def test_generation_retry_keys_prevent_duplicate_work_and_conflicting_settings(client, monkeypatch):
+    from app import jobs
+
+    calls = []
+    monkeypatch.setattr(jobs.executor, "submit", lambda fn, identifier: calls.append(identifier))
+    body = dict(text="A voice test.", voice="am_fenrir", request_id="c" * 32)
+    first = client.post("/api/generations", json=body)
+    again = client.post("/api/generations", json=body)
+    assert first.status_code == again.status_code == 202
+    assert first.json()["id"] == again.json()["id"]
+    assert "request_id" not in first.json()
+    assert len(calls) == 1
+    assert client.post("/api/generations", json={**body, "speed": 1.2}).status_code == 409
+    switch_user(client)
+    other = client.post("/api/generations", json=body).json()
+    assert other["id"] != first.json()["id"]
+    assert client.get("/api/generations/" + first.json()["id"]).status_code == 404
+
+
+def test_parallel_snapshot_reuse_creates_one_private_file(client):
+    from concurrent.futures import ThreadPoolExecutor
+
+    from app import config
+
+    user = client.get("/api/auth/me").json()["user"]
+
+    def save(_):
+        return storage.save_material(
+            "Parallel",
+            "One private snapshot.",
+            reuse=True,
+            owner_id=user["id"],
+            visibility="private",
+        )["id"]
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        ids = list(pool.map(save, range(8)))
+    assert len(set(ids)) == 1
+    assert (config.DATA / "materials" / (ids[0] + ".json")).is_file()

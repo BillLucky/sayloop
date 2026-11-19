@@ -7,9 +7,25 @@ export class PracticePlayer {
     this.index = -1;
     this.mode = 'continuous';
     this.waiting = false;
+    this.pendingSeek = null;
+    audio.addEventListener?.('loadedmetadata', () => {
+      if (this.pendingSeek === null || audio.readyState < 1) return;
+      const target = this.pendingSeek;
+      this.pendingSeek = null;
+      audio.currentTime = target;
+      this.index = this.locate(target);
+      this.changed(this);
+    });
+  }
+
+  get position() {
+    return (
+      this.pendingSeek ?? (Number.isFinite(this.audio.currentTime) ? this.audio.currentTime : 0)
+    );
   }
 
   load(segments) {
+    this.pendingSeek = null;
     this.segments = segments;
     this.index = segments.length ? 0 : -1;
     this.waiting = false;
@@ -36,7 +52,7 @@ export class PracticePlayer {
     if (!this.segments.length) return;
     this.index = Math.max(0, Math.min(index, this.segments.length - 1));
     this.waiting = false;
-    this.audio.currentTime = this.segments[this.index].start;
+    this.setPosition(this.segments[this.index].start);
     this.changed(this);
     await this.audio.play();
   }
@@ -56,9 +72,21 @@ export class PracticePlayer {
 
   seek(time) {
     this.waiting = false;
-    this.audio.currentTime = time;
-    this.index = this.locate(time);
+    const target = this.setPosition(time);
+    this.index = this.locate(target);
     this.changed(this);
+  }
+
+  setPosition(time) {
+    const target = Number.isFinite(time) ? Math.max(0, time) : 0;
+    this.pendingSeek = this.audio.readyState === 0 ? target : null;
+    try {
+      this.audio.currentTime = target;
+    } catch (error) {
+      if (error.name !== 'InvalidStateError') throw error;
+      this.pendingSeek = target;
+    }
+    return target;
   }
 
   tick() {

@@ -66,3 +66,12 @@ Replaced the dense phone menu with three short primary tabs and a native More sh
 **Strengthened public-source boundaries.** Added index-based commit checks, version-locked formatting, exact reviewed-image blobs, private address/configuration detection, and real fresh-clone commit regressions. Corrected outdated local-only/account wording and kept the interface explicit about configured model-service submissions. No dependencies, model routing, global network settings, or personal media were added to source.
 
 **Verified in isolation.** Synthetic desktop/phone flows and the real model-to-preview chain ran in a separate working copy and data directory. Release evidence and project feedback remain local; public documentation contains feature and validation summaries only.
+
+
+## 2026-11-19 · v0.4.3 learning continuity
+
+**Preserved place and reduced repeat actions.** Added paused position recovery, clear-filter empty states, normalized multi-keyword search, per-view scroll restoration, and reuse of exact owned material/recording snapshots. Intentional copies retain their identity and settings changes create distinct work.
+
+**Closed asynchronous state boundaries.** Frozen submissions, request IDs, selection/edit/read/mutation epochs, deferred media seeking, and document-session cache cancellation prevent delayed responses from replacing newer work or writing after logout. Password changes share the independent cleanup path.
+
+**Kept delivery evidence private.** Synthetic regression fixtures and isolated real-model/speech checks use separate data. Project memory, screenshots, operational hashes, and review details remain ignored; public documentation records behavior and verification limits.

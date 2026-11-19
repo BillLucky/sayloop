@@ -20,7 +20,15 @@ from .engine import engine
 from .jobs import recover_jobs, submit
 from .learning import router
 from .network import settings
-from .storage import get_job, get_material, list_jobs, list_materials, save_material
+from .storage import (
+    IDENTIFIER_PATTERN,
+    RequestConflict,
+    get_job,
+    get_material,
+    list_jobs,
+    list_materials,
+    save_material,
+)
 from .text import clean_text
 
 
@@ -82,6 +90,7 @@ class MaterialInput(BaseModel):
     role_a: str = Field(default="A", max_length=80)
     role_b: str = Field(default="B", max_length=80)
     composition_id: str | None = None
+    reuse: bool = False
 
     @field_validator("language")
     @classmethod
@@ -101,6 +110,7 @@ class GenerationInput(BaseModel):
     kind: str = Field(default="full", pattern="^(full|preview)$")
     material_id: str | None = None
     voice_b: str | None = None
+    request_id: str | None = Field(default=None, pattern=IDENTIFIER_PATTERN)
 
 
 @app.get("/api/health")
@@ -169,6 +179,7 @@ def create_material(item: MaterialInput, request: Request):
             role_a=item.role_a,
             role_b=item.role_b,
             composition_id=item.composition_id,
+            reuse=item.reuse,
         )
     except ValueError as error:
         raise HTTPException(422, str(error)) from error
@@ -221,7 +232,7 @@ def generate(item: GenerationInput, request: Request):
         if material["text"] != text:
             raise HTTPException(409, "Save the edited text as a new material version first.")
     try:
-        return submit(
+        accepted = submit(
             text,
             item.title,
             item.voice,
@@ -234,7 +245,11 @@ def generate(item: GenerationInput, request: Request):
             voice_b=item.voice_b or item.voice,
             role_a=material.get("role_a", "A") if material else "A",
             role_b=material.get("role_b", "B") if material else "B",
+            request_id=item.request_id,
         )
+        return dict(audio_versions(accepted), owned=True)
+    except RequestConflict as error:
+        raise HTTPException(409, str(error)) from error
     except ValueError as error:
         raise HTTPException(429, str(error)) from error
 
@@ -246,7 +261,7 @@ def audio_version(path):
 
 
 def audio_versions(job):
-    job = dict(job)
+    job = {key: value for key, value in job.items() if key != "request_id"}
     if job["status"] == "completed":
         for extension, key in (("mp3", "audio_url"), ("wav", "wav_url")):
             path = DATA / "audio" / f"{job['id']}.{extension}"
@@ -258,7 +273,13 @@ def audio_versions(job):
 @app.get("/api/generations")
 def generations(request: Request):
     return [
-        {k: v for k, v in audio_versions(job).items() if k not in ("text", "segments", "turns")}
+        {
+            k: v
+            for k, v in dict(
+                audio_versions(job), owned=accounts.owner_id(job) == request.state.user["id"]
+            ).items()
+            if k not in ("text", "segments", "turns")
+        }
         for job in list_jobs()
         if accounts.can_read(job, request.state.user)
     ]
@@ -267,7 +288,10 @@ def generations(request: Request):
 @app.get("/api/generations/{identifier}")
 def generation(identifier: str, request: Request):
     try:
-        return audio_versions(accounts.require_read(get_job(identifier), request.state.user))
+        job = audio_versions(accounts.require_read(get_job(identifier), request.state.user))
+        job["owned"] = accounts.owner_id(job) == request.state.user["id"]
+        job["resume_position"] = accounts.resume_position(request.state.user, job)
+        return job
     except (ValueError, FileNotFoundError):
         raise HTTPException(404, "Generation not found.") from None
 

@@ -292,14 +292,29 @@ test('device audio is account-scoped and legacy versions migrate without downloa
     const adopted = await cache.adoptLegacyAudio(current);
     const moved = !!(await cache.cachedAudio(current));
     await cache.clearUserAudio();
+    let revoked = false;
+    try {
+      await cache.cachedAudio(current);
+    } catch (error) {
+      revoked = error.name === 'AbortError';
+    }
+    cache.setAudioUser('fixture-user');
     const cleared = !(await cache.cachedAudio(current));
-    return { hiddenFromOtherAccount, retainedForOwner, adopted: adopted.size > 0, moved, cleared };
+    return {
+      hiddenFromOtherAccount,
+      retainedForOwner,
+      adopted: adopted.size > 0,
+      moved,
+      revoked,
+      cleared,
+    };
   });
   expect(result).toEqual({
     hiddenFromOtherAccount: true,
     retainedForOwner: true,
     adopted: true,
     moved: true,
+    revoked: true,
     cleared: true,
   });
 });

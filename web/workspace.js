@@ -1,3 +1,4 @@
+import { requestId as uid } from './request-id.js';
 import { setAudioUser, clearUserAudio } from './audio-cache.js';
 
 const $ = (selector) => document.querySelector(selector);
@@ -11,12 +12,6 @@ const jsonOptions = (method, data) => ({
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify(data),
 });
-const uid = () =>
-  crypto.randomUUID
-    ? crypto.randomUUID().replaceAll('-', '')
-    : Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) =>
-        b.toString(16).padStart(2, '0')
-      ).join('');
 let api, post, state, toast, showView, openMaterial, refreshViews;
 let mode = 'polish',
   current,
@@ -32,6 +27,7 @@ let studySession,
 let pendingStudy;
 let submitting = false;
 let revisionEpoch = 0;
+let authorEditEpoch = 0;
 let loadingRevision = false;
 let pendingSubmission;
 let draftTimer;
@@ -95,6 +91,11 @@ export async function authenticate(helpers) {
   }
   state.user = user;
   setAudioUser(user.id);
+  window.addEventListener('sayloop:session-retired', async ({ detail }) => {
+    if (detail.identifier !== state.user.id || state.loggingOut) return;
+    await clearLocalSession(detail.identifier, false);
+    location.reload();
+  });
   $('#profile-name').textContent = $('#mobile-profile-name').textContent = user.display_name;
   $('#auth-screen').hidden = true;
   document.body.classList.remove('auth-pending');
@@ -102,36 +103,63 @@ export async function authenticate(helpers) {
   $('#logout').onclick = async () => {
     document.querySelector('#audio').pause();
     try {
-      await post('/auth/logout', {});
+      await retireSession(() => post('/auth/logout', {}));
     } catch {
       toast('退出未完成，请检查连接后重试。', true);
       return;
     }
-    draftsEnabled = false;
-    revisionEpoch += 1;
-    clearTimeout(draftTimer);
-    let cleanupFailed = false;
+  };
+}
+
+async function retireSession(action) {
+  if (state.loggingOut) return;
+  // An older authenticated read may return 401 before the revoking POST returns.
+  state.loggingOut = true;
+  try {
+    await action();
+  } catch (error) {
+    let activeUser;
     try {
-      await clearUserAudio();
+      activeUser = (await api('/auth/me')).user;
+    } catch {
+      state.loggingOut = false;
+      throw error;
+    }
+    if (activeUser?.id === state.user.id) {
+      state.loggingOut = false;
+      throw error;
+    }
+  }
+  await clearLocalSession(state.user.id);
+  location.reload();
+}
+
+async function clearLocalSession(identifier, notifyPeers = true) {
+  state.loggingOut = true;
+  window.dispatchEvent(new Event('sayloop:logout'));
+  draftsEnabled = false;
+  revisionEpoch += 1;
+  clearTimeout(draftTimer);
+  let cleanupFailed = false;
+  try {
+    await clearUserAudio(identifier, notifyPeers);
+  } catch {
+    cleanupFailed = true;
+  }
+  for (const key of [draftKey(), `llh-draft-${identifier}`]) {
+    try {
+      localStorage.removeItem(key);
     } catch {
       cleanupFailed = true;
     }
-    for (const key of [draftKey(), `llh-draft-${user.id}`]) {
-      try {
-        localStorage.removeItem(key);
-      } catch {
-        cleanupFailed = true;
-      }
+  }
+  if (cleanupFailed) {
+    try {
+      sessionStorage.setItem('sayloop-cleanup-warning', '1');
+    } catch {
+      /* Storage can be denied. */
     }
-    if (cleanupFailed) {
-      try {
-        sessionStorage.setItem('sayloop-cleanup-warning', '1');
-      } catch {
-        /* Storage can be denied. */
-      }
-    }
-    location.reload();
-  };
+  }
 }
 
 function updateAuthorControls() {
@@ -227,6 +255,7 @@ function loadDraft() {
 }
 
 function remember(event) {
+  authorEditEpoch += 1;
   dirty = true;
   $('#author-source').setCustomValidity('');
   $('#source-count').textContent =
@@ -548,14 +577,26 @@ function adoptRevision(item, localResult) {
   updateAuthorControls();
   $('#source-count').textContent = `${spec.source.length.toLocaleString()} / 12,000 字`;
 }
-async function saveCandidate(kind, index, navigate = true) {
-  const result = readResult();
-  const language = current.input.language;
+function candidateSnapshot() {
+  return {
+    result: readResult(),
+    input: { ...current.input },
+    id: current.id,
+    tags: current.tags ? [...current.tags] : null,
+    epoch: revisionEpoch,
+    editEpoch: authorEditEpoch,
+  };
+}
+async function saveCandidate(kind, index, navigate = true, selection = candidateSnapshot()) {
+  if (!draftsEnabled) return null;
+  const { result, input } = selection;
+  const language = input.language;
   let body = {
     title: result.title,
     language,
-    tags: current.tags || (current.input.style ? [current.input.style] : []),
-    composition_id: current.id?.length === 32 ? current.id : null,
+    tags: selection.tags || (input.style ? [input.style] : []),
+    composition_id: selection.id?.length === 32 ? selection.id : null,
+    reuse: true,
   };
   if (kind === 'chinese') body = { ...body, text: result.chinese, language: 'z' };
   else if (kind === 'variant')
@@ -576,9 +617,18 @@ async function saveCandidate(kind, index, navigate = true) {
     };
   }
   const material = await post('/materials', body);
-  state.materials = await api('/materials');
+  if (!draftsEnabled) return material;
+  state.materials = [
+    { ...material, owned: true },
+    ...state.materials.filter((item) => item.id !== material.id),
+  ];
   refreshViews();
-  if (navigate) {
+  if (
+    navigate &&
+    selection.epoch === revisionEpoch &&
+    selection.editEpoch === authorEditEpoch &&
+    state.view === 'authoring'
+  ) {
     openMaterial(material.id);
     toast('语料已保存。先试听，再生成完整录音。');
   }
@@ -823,9 +873,15 @@ export async function initWorkspace() {
       if (button.dataset.saveDialogue !== undefined)
         await saveCandidate('dialogue', Number(button.dataset.saveDialogue));
       if (button.id === 'save-all-results') {
-        const result = readResult();
-        for (let i = 0; i < result.variants.length; i++) await saveCandidate('variant', i, false);
-        for (let i = 0; i < result.dialogues.length; i++) await saveCandidate('dialogue', i, false);
+        const selection = candidateSnapshot();
+        for (let i = 0; i < selection.result.variants.length; i++) {
+          if (!draftsEnabled) return;
+          await saveCandidate('variant', i, false, selection);
+        }
+        for (let i = 0; i < selection.result.dialogues.length; i++) {
+          if (!draftsEnabled) return;
+          await saveCandidate('dialogue', i, false, selection);
+        }
         toast('本版语料已全部入库，可按标签和语言筛选。');
       }
       button.textContent = '已保存到语料库 ✓';
@@ -912,12 +968,12 @@ export async function initWorkspace() {
   $('#password-form').onsubmit = async (event) => {
     event.preventDefault();
     try {
-      await post('/auth/password', {
-        current: $('#current-password').value,
-        new: $('#new-password').value,
-      });
-      await clearUserAudio();
-      location.reload();
+      await retireSession(() =>
+        post('/auth/password', {
+          current: $('#current-password').value,
+          new: $('#new-password').value,
+        })
+      );
     } catch (error) {
       toast(error.message, true);
     }

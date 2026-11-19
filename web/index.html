@@ -225,6 +225,7 @@
               ><input
                 id="search"
                 type="search"
+                maxlength="200"
                 placeholder="搜索标题、正文或标签…"
                 aria-label="Search materials"
             /></label>
@@ -235,6 +236,9 @@
               ><button data-filter="ready">可练习</button
               ><button data-filter="draft">待配音</button>
             </div>
+            <button id="clear-library-filters" class="text-button" data-clear-library hidden>
+              清除筛选
+            </button>
           </div>
           <details class="filter-details">
             <summary>筛选与排序<span id="active-filter-count" hidden></span></summary>
@@ -615,6 +619,10 @@
             ><select id="practice-recording">
               <option value="">选择一份完整录音</option></select
             ><button id="hide-text" class="button secondary">隐藏文字</button>
+          </div>
+          <div id="practice-resume" class="practice-resume" hidden>
+            <span id="practice-resume-label" role="status"></span>
+            <button class="text-button" data-action="restart">回到开头</button>
           </div>
           <div class="practice-controls panel">
             <div class="mode-buttons" role="group" aria-label="练习方式">

@@ -1,5 +1,14 @@
 # Verification record
 
+## 2026-11-19 · v0.4.3 learning continuity
+
+- **91 Python tests and 16 Node tests passed.** Backend coverage adds account-scoped resume, exclusion of empty/preview/end positions, exact private-material reuse, concurrent saves, and account-scoped speech request conflicts. Node coverage adds normalized search/cache invalidation, deferred media seeking, and downloads completing after account retirement.
+- **98 Chrome desktop/phone tests passed.** Workflow regressions cover paused resume/reset, library clear/search/scroll, immutable submission settings, explicit-copy identity, delayed media/list/save responses, and logout/password cleanup. Session scenarios include a 401 arriving before the revoking response, another tab's pending download, storage denial, and failed logout with same/different authenticated identity. Final counts and deployment evidence remain in the local release record.
+- A real configured model polished synthetic Chinese in about eight seconds and returned three expressions in about ten more. Offline Kokoro produced a 6.875-second preview and a 7.175-second full recording with two segments. Mobile-sized Chrome played it, recorded listening, reopened it paused at 4.04 seconds, reset to the beginning, and reused a saved blob after reload with **zero audio requests and no JavaScript errors**. Repeated preview/full actions created only the two intended speech jobs.
+- A synthetic library benchmark with 1,000 materials and 5,000 recording records exercises the selectors without a network or DOM timing claim. Measured results are local observations rather than fixed CI performance thresholds.
+- Independent review reproduced asynchronous boundary defects before fixes and closed them with synthetic API/IndexedDB/media fixtures. Ruff, Python compilation, module syntax, Prettier, staged-source checks, and history privacy checks are required before release.
+- The existing utility layout and four approved documentation images are retained. No new formal marketing-gate PASS is claimed. Physical mobile devices, Safari, virtual keyboards, OS background audio, cold boot, multi-worker storage, and a new Docker runtime remain outside this round's acceptance. Real-audio verification checks functional generation/playback rather than subjective listening quality.
+
 ## 2026-11-17 · v0.4.1 compact workspace
 
 - **66 Python tests, 7 Node playback tests, and 28 Chrome desktop/mobile browser tests passed.** Ruff, compilation, ES-module syntax, Prettier, and whitespace checks passed. No runtime dependency upgrade was needed.
