@@ -72,7 +72,9 @@ async def local_only(request: Request, call_next):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"] = "no-referrer"
     response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'"
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; "
+        "frame-ancestors 'none'; form-action 'none'"
     )
     if "cache-control" not in response.headers:
         response.headers["Cache-Control"] = (

@@ -10,7 +10,8 @@
     <meta name="site-kind" content="software" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/style.css" />
-    <script src="/app.js" type="module"></script>
+    <link rel="modulepreload" href="/app.js" />
+    <script src="/boot.js" type="module"></script>
   </head>
   <body class="auth-pending">
     <a class="skip-link" href="#main-content">跳到工作区</a>
@@ -25,7 +26,7 @@
           <li>选择声音，逐句练习</li>
         </ol>
       </div>
-      <form method="post" id="auth-form" class="panel auth-form">
+      <form method="dialog" id="auth-form" class="panel auth-form">
         <h2 id="auth-heading">登录你的学习空间</h2>
         <p>语料、创作版本和学习记录随账号保存。</p>
         <label for="login-name">账号</label
@@ -36,7 +37,7 @@
           required
           minlength="3"
           maxlength="40"
-          pattern="[a-zA-Z0-9_.-]+"
+          pattern="[a-zA-Z0-9_.\-]+"
         />
         <label for="login-password">密码</label
         ><input
@@ -55,8 +56,17 @@
           ><input id="register-code" maxlength="100" autocomplete="off" />
         </div>
         <p id="auth-error" class="form-error" role="alert"></p>
-        <button id="auth-submit" class="button primary full" type="submit">登录学习空间</button>
-        <button id="auth-switch" class="text-button" type="button">使用邀请码创建账号</button>
+        <p id="auth-startup" class="field-help" role="status">
+          <span>正在连接学习空间。若一直停在这里，请</span>
+          <a href="">重新加载</a>
+        </p>
+        <noscript><p>请在浏览器中启用 JavaScript，再重新加载此页。</p></noscript>
+        <button id="auth-submit" class="button primary full" type="submit" disabled>
+          登录学习空间
+        </button>
+        <button id="auth-switch" class="text-button" type="button" disabled>
+          使用邀请码创建账号
+        </button>
         <p class="field-help">首次使用：管理员登录信息保存在服务器 data/OWNER_LOGIN.txt。</p>
       </form>
     </section>

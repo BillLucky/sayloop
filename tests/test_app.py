@@ -95,6 +95,27 @@ def test_local_access_guard(client):
     assert client.get("/api/audio/not-a-file.mp3").status_code == 404
 
 
+def test_browser_login_uses_same_origin_json_and_keeps_the_session(client):
+    assert "form-action 'none'" in client.get("/").headers["content-security-policy"].split("; ")
+    origin = {"Origin": "http://testserver"}
+    credentials = {"username": "owner", "password": "test-password-only"}
+    assert client.post("/api/auth/logout", headers=origin).status_code == 200
+    assert (
+        client.post("/api/auth/login", headers={"Origin": "null"}, json=credentials).status_code
+        == 403
+    )
+    assert client.get("/api/auth/me").json()["user"] is None
+    login = client.post("/api/auth/login", headers=origin, json=credentials)
+    assert login.status_code == 200
+    assert client.get("/api/auth/me").json()["user"]["id"] == login.json()["user"]["id"]
+    assert (
+        client.post(
+            "/api/materials", headers=origin, json={"text": "A practice sentence."}
+        ).status_code
+        == 201
+    )
+
+
 def test_generation_lifecycle_and_download(client, monkeypatch):
     from app import jobs
 

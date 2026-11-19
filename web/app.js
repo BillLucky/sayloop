@@ -1150,7 +1150,7 @@ $('#hide-text').onclick = () => {
   $('#focus-stage').classList.toggle('text-hidden', hidden);
   $('#hide-text').textContent = hidden ? '显示文字' : '隐藏文字';
 };
-async function init() {
+export async function init() {
   icons();
   initNavigation();
   await authenticate({ api, post, state, toast, showView, openMaterial, refreshViews });
@@ -1221,6 +1221,8 @@ async function init() {
   updateCount();
   refreshViews();
   showView(location.hash.slice(1) || 'library');
+  $('#auth-screen').hidden = true;
+  document.body.classList.remove('auth-pending');
   let polling = false;
   let lastRefresh = Date.now();
   async function pollJobs(force = false) {
@@ -1242,4 +1244,3 @@ async function init() {
     if (!document.hidden) void pollJobs(true);
   });
 }
-safely(init)();

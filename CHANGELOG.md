@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.4 — 2026-11-19
+
+- Enable login and registration after the browser has checked the session and installed its submit handler. Clicking or pressing Enter while the page loads keeps the credentials on the page.
+- Show a reload link when a module, session lookup, or workspace request fails. Browsers with JavaScript disabled show instructions on the login page.
+- Prevent native form navigation with the page's content security policy. Account actions continue to use the existing same-origin JSON APIs.
+
 ## 0.4.3 — 2026-11-19
 
 - Resume a full recording at the current account's last saved position, paused, with a visible return-to-start action. Preserve pending seeks and the selected lesson across media and view changes.

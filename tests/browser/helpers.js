@@ -1,4 +1,5 @@
 export async function goToView(page, view) {
+  await page.locator('#auth-screen').waitFor({ state: 'hidden' });
   let button = page.locator(`[data-view="${view}"]:visible`).first();
   if (!(await button.count())) {
     await page.locator('#more-tools').click();

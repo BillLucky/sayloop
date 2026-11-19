@@ -59,5 +59,7 @@ export function initNavigation() {
   $('#more-tools').addEventListener('click', () =>
     $('#more-tools').setAttribute('aria-expanded', 'true')
   );
-  matchMedia('(min-width: 701px)').addEventListener('change', closeSheets);
+  const desktop = matchMedia('(min-width: 701px)');
+  if (desktop.addEventListener) desktop.addEventListener('change', closeSheets);
+  else desktop.addListener(closeSheets);
 }

@@ -65,7 +65,9 @@ export async function authenticate(helpers) {
     user = await new Promise((resolve) => {
       $('#auth-form').onsubmit = async (event) => {
         event.preventDefault();
+        if ($('#auth-submit').disabled) return;
         $('#auth-submit').disabled = true;
+        $('#auth-switch').disabled = true;
         $('#auth-error').textContent = '';
         try {
           const credentials = {
@@ -83,12 +85,17 @@ export async function authenticate(helpers) {
           resolve(result.user);
         } catch (error) {
           $('#auth-error').textContent = error.message;
-        } finally {
           $('#auth-submit').disabled = false;
+          $('#auth-switch').disabled = false;
         }
       };
+      $('#auth-startup').hidden = true;
+      $('#auth-submit').disabled = false;
+      $('#auth-switch').disabled = false;
     });
   }
+  $('#auth-startup span').textContent = '正在打开学习空间。若连接中断，请';
+  $('#auth-startup').hidden = false;
   state.user = user;
   setAudioUser(user.id);
   window.addEventListener('sayloop:session-retired', async ({ detail }) => {
@@ -97,8 +104,6 @@ export async function authenticate(helpers) {
     location.reload();
   });
   $('#profile-name').textContent = $('#mobile-profile-name').textContent = user.display_name;
-  $('#auth-screen').hidden = true;
-  document.body.classList.remove('auth-pending');
   $('#mobile-logout').onclick = () => $('#logout').click();
   $('#logout').onclick = async () => {
     document.querySelector('#audio').pause();

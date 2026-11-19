@@ -53,6 +53,10 @@ References: [Tailscale Serve](https://tailscale.com/docs/features/tailscale-serv
 
 ## Connection troubleshooting
 
+**If login shows “Cross-origin writes are not allowed,” open the original address in a fresh tab.** On versions before 0.4.4, submitting the visible form before the session check finished could navigate to a JSON error page. The current page enables the login button when it can send the request to the login API. If the connection stalls, use the reload link on the form.
+
+**Choose an entry that reaches the server from your device.** On the server itself, open `http://127.0.0.1:8765/`. On the same trusted LAN, use the configured Ethernet address and port. With Tailscale connected, the configured direct Tailscale IPv4 address and port are also available when a client proxy delays the private HTTPS hostname.
+
 If Serve reports a private route but HTTPS fails, check that Tailscale is connected on both devices and that MagicDNS resolves the device to its Tailscale address. A proxy using fake-IP DNS can intercept the hostname before Tailscale sees it. Configure that proxy's private-domain/DNS bypass yourself; the setup helper never changes global proxy or DNS settings. Do not disable TLS validation. If LAN access fails, check the current computer IP and local firewall without exposing the port on the router.
 
 ## Direct Tailscale IPv4 (without private DNS)
